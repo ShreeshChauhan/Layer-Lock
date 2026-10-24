@@ -26,10 +26,15 @@ MOCK = os.environ.get("MOCK", "0") == "1"
 # On the Pi use http://localhost. From your laptop use http://<pi-address>.
 OCTO_URL = os.environ.get("OCTO_URL", "http://localhost").rstrip("/")
 OCTO_KEY = os.environ.get("OCTO_KEY", "")
-HTTP_TIMEOUT = _float("HTTP_TIMEOUT", 5)  # seconds, applied to every request
+HTTP_TIMEOUT = _float("HTTP_TIMEOUT", 5)        # seconds, applied to every request
+UPLOAD_TIMEOUT = _float("UPLOAD_TIMEOUT", 120)  # seconds, for G-code file uploads
 
 # --- Camera -----------------------------------------------------------------
+# On the Pi: http://localhost:8080/?action=snapshot
+# From a laptop on another network: http://<pi-address>/webcam/?action=snapshot
 SNAPSHOT_URL = os.environ.get("SNAPSHOT_URL", "http://localhost:8080/?action=snapshot")
+# Live MJPEG stream, for viewing and the web app (the stop logic uses snapshots)
+STREAM_URL = os.environ.get("STREAM_URL", "http://localhost:8080/?action=stream")
 REPLAY_DIR = os.environ.get("REPLAY_DIR", "replay")  # folder of .jpg frames for mock mode
 
 # --- Health thresholds (tune these during your soak test) --------------------

@@ -1,11 +1,12 @@
-"""Quick check of the hardware layer. Run from the repo root:
+"""Quick check of the hardware layer. Run from the pi-module folder:
 
-    python -m tools.hardware_check                 # read-only: state, one frame, health
-    python -m tools.hardware_check --pause         # then run an action and re-read state
+    python -m tools.hardware_check                 # read-only: one frame, then the health report
+    python -m tools.hardware_check --pause         # send a command first, then run the same checks
     python -m tools.hardware_check --resume
     python -m tools.hardware_check --cancel
     python -m tools.hardware_check --heaters-off
 
+The action flags move the real printer. Use one at a time.
 Add MOCK=1 (env var) to run without any hardware.
 """
 import argparse

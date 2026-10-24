@@ -1,6 +1,9 @@
 """Hardware layer. The rest of the project only imports from here.
 
-    from backend.hardware import get_printer, get_camera, get_health_monitor
+    from hardware import get_printer, get_camera, get_health_monitor
+
+(Run scripts from the pi-module folder. If this folder is moved into a package,
+the import path changes to match, e.g. `from backend.hardware import ...`.)
 
 MOCK=1 gives fake versions with the same interface (no Pi, printer, or camera needed).
 Create ONE printer and pass it around, so mock state stays consistent:
@@ -16,7 +19,9 @@ from .printer import MockPrinter, OctoPrinter, OctoPrintUnreachable, PrinterErro
 
 
 __all__ = [
+    "config",
     "get_printer", "get_camera", "get_health_monitor",
+    "OctoPrinter", "MockPrinter", "SnapshotCamera", "ReplayCamera", "HealthMonitor",
     "Frame", "CameraError", "PrinterError", "OctoPrintUnreachable", "ResumeBlocked", "PrintBlocked",
 ]
 
