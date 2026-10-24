@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import download_test_videos as downloader
+from vision.src import download_test_videos as downloader
 
 
 class DownloadTests(unittest.TestCase):

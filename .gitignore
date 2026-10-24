@@ -4,10 +4,11 @@ __pycache__/
 
 
 vision/models/
-vision/captures/
-vision/detection_result.jpg
-vision/test_videos/
+vision/datasets/videos/
 vision/results/
 
 # Generated logs
-vision/*.log
+vision/**/*.log
+vision/**/*.tmp
+vision/**/*.part
+vision/**/*.ytdl

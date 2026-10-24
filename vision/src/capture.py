@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 
 # Store captured frames inside the vision directory
-OUTPUT_DIR = Path(__file__).parent / "captures"
-OUTPUT_DIR.mkdir(exist_ok=True)
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "results" / "captures"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Connect to the default webcam
 camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)

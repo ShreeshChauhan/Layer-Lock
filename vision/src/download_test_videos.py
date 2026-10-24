@@ -14,9 +14,9 @@ import sys
 import tempfile
 from urllib.parse import parse_qs, urlparse
 
-ROOT = Path(__file__).resolve().parent
-OUTPUT = ROOT / "test_videos"
-MANIFEST = ROOT / "test_videos_manifest.csv"
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT = ROOT / "datasets" / "videos"
+MANIFEST = ROOT / "datasets" / "test_videos_manifest.csv"
 DATASET = "https://github.com/EmptyDeck/3DPrint-Failure-Video-Dataset"
 # video_links.md label, sequences.csv label, YouTube ID, onset frame, frame count.
 # Metadata declares 1 fps and zero-based frames. Labels differ between files;
@@ -63,7 +63,7 @@ def planned_rows(selection=None) -> list[dict]:
 def catalog_selection():
     """Read the saved upstream metadata snapshot; preserve initial five filenames."""
     aliases = {entry[2]: entry[0] for entry in SELECTION}
-    with (ROOT / "dataset_sequences.csv").open(newline="", encoding="utf-8-sig") as handle:
+    with (ROOT / "datasets" / "dataset_sequences.csv").open(newline="", encoding="utf-8-sig") as handle:
         catalog = list(csv.DictReader(handle))
     selection = []
     for row in catalog:
@@ -171,7 +171,7 @@ def main() -> int:
         merged = dict(retained)
         merged.update({row["source_url"]: row for row in rows})
         write_manifest(list(merged.values()))
-    OUTPUT.mkdir(exist_ok=True)
+    OUTPUT.mkdir(parents=True, exist_ok=True)
     if args.plan:
         for row in rows:
             retained.setdefault(row["source_url"], row)
@@ -188,7 +188,7 @@ def main() -> int:
             retained.setdefault(row["source_url"], row)
         write_manifest(list(retained.values()))
         print("Missing dependencies: " + ", ".join(missing), file=sys.stderr)
-        print("Install FFmpeg and FFprobe on PATH. See vision/TEST_VIDEOS.md.", file=sys.stderr)
+        print("Install FFmpeg and FFprobe on PATH. See vision/docs/TEST_VIDEOS.md.", file=sys.stderr)
         return 2
     print("Dataset license: CC BY-NC 4.0, research use. Retain attribution; "
           "commercial use requires separate permission.")

@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import evaluate_dataset as batch
-import evaluate_videos as ev
-import download_test_videos as download
+from vision.src import evaluate_dataset as batch
+from vision.src import evaluate_videos as ev
+from vision.src import download_test_videos as download
 
 
 class DatasetTests(unittest.TestCase):
@@ -23,9 +23,9 @@ class DatasetTests(unittest.TestCase):
             root = Path(temporary)
             output = root/'results'; folder = output/'sample'/'full_frame'
             folder.mkdir(parents=True)
-            (root/'test_videos').mkdir()
-            (root/'test_videos'/'sample.mp4').touch()
-            batch.write_csv(root/'dataset_sequences.csv',[
+            (root/'datasets'/'videos').mkdir(parents=True)
+            (root/'datasets'/'videos'/'sample.mp4').touch()
+            batch.write_csv(root/'datasets'/'dataset_sequences.csv',[
                 dict(sequence='sample',video_url='url1',onset_frame='120'),
                 dict(sequence='missing',video_url='url2',onset_frame='200')])
             rows = []

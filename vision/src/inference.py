@@ -4,7 +4,10 @@ import time
 
 import cv2
 
-from detector import detect_failure
+if __package__:
+    from .detector import detect_failure
+else:
+    from detector import detect_failure
 
 
 def monitor(source=0, interval=3):

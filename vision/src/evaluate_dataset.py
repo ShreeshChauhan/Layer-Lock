@@ -1,7 +1,7 @@
 """Evaluate every local MP4 with per-video reviewed ROIs and consolidate results.
 
 Reuses evaluate_videos and the unchanged detector. No accuracy labels are inferred.
-Run: .venv/Scripts/python.exe vision/evaluate_dataset.py
+Run: .venv/Scripts/python.exe vision/src/evaluate_dataset.py
 Use --output vision/results/<run> --resume to add newly downloaded videos.
 """
 import argparse
@@ -16,15 +16,18 @@ import sys
 import cv2
 import numpy as np
 
-import evaluate_videos as ev
+if __package__:
+    from . import evaluate_videos as ev
+else:
+    import evaluate_videos as ev
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def prepare_reviews():
     destination = ROOT / 'results' / 'dataset_review'
     destination.mkdir(parents=True, exist_ok=True)
-    for source in sorted((ROOT / 'test_videos').glob('*.mp4')):
+    for source in sorted((ROOT / 'datasets' / 'videos').glob('*.mp4')):
         target = destination / (source.stem + '.jpg')
         if target.exists():
             continue
@@ -59,16 +62,16 @@ def write_csv(path, rows, fields=None):
 
 def consolidate(output, manifest, rois):
     frames, summaries = [], []
-    review_path = ROOT / 'dataset_visual_review.json'
+    review_path = ROOT / 'datasets' / 'dataset_visual_review.json'
     reviews = json.loads(review_path.read_text()) if review_path.exists() else []
     review_by_key = {(r['video'],r['mode'],float(r['clip_seconds'])):r for r in reviews}
-    with (ROOT / 'dataset_sequences.csv').open(newline='', encoding='utf-8-sig') as handle:
+    with (ROOT / 'datasets' / 'dataset_sequences.csv').open(newline='', encoding='utf-8-sig') as handle:
         catalog = list(csv.DictReader(handle))
     by_url = {m['source_url']: m for m in manifest.values()}
     inventory = []
     for item in catalog:
         m = by_url.get(item['video_url'], {})
-        exists = bool(m) and (ROOT / 'test_videos' / m['output_filename']).is_file()
+        exists = bool(m) and (ROOT / 'datasets' / 'videos' / m['output_filename']).is_file()
         inventory.append(dict(sequence=item['sequence'], source_url=item['video_url'],
                               source_onset_seconds=item['onset_frame'], available=exists,
                               output_filename=m.get('output_filename', ''),
@@ -77,7 +80,7 @@ def consolidate(output, manifest, rois):
     write_csv(output / 'inventory.csv', inventory)
     representatives = output / 'representatives'
     representatives.mkdir(exist_ok=True)
-    for video in sorted((ROOT / 'test_videos').glob('*')):
+    for video in sorted((ROOT / 'datasets' / 'videos').glob('*')):
         if video.suffix.lower() != '.mp4' or not video.is_file():
             continue
         metadata = manifest.get(video.name, {})
@@ -147,7 +150,7 @@ def consolidate(output, manifest, rois):
     report = ['# LayerLock dataset evaluation', '',
               f'Catalog: {len(catalog)} sequences; local catalog clips: {sum(r["available"] for r in inventory)}. '
               f'Evaluated local MP4s: {len({r["video"] for r in summaries if r["status"] in ("ok","partial","error")})}.', '',
-              'Initial inventory was five MP4s with 25 catalog clips missing; see vision/dataset_initial_inventory.csv for the exact list. '
+              'Initial inventory was five MP4s with 25 catalog clips missing; see vision/datasets/dataset_initial_inventory.csv for the exact list. '
               'Additional clips were downloaded through the public-only existing downloader, without access-restriction workarounds.', '',
               'Every sample is separated by two seconds of video time. Clips retain source onset timing. '
               'Before means strictly before the annotated bed-adhesion onset; after includes onset. '
@@ -232,18 +235,21 @@ def main():
         parser.error('Keep output inside vision/')
     output.mkdir(parents=True, exist_ok=True)
     manifest = ev.load_manifest()
-    rois = json.loads((ROOT / 'dataset_rois.json').read_text())
+    rois = json.loads((ROOT / 'config' / 'dataset_rois.json').read_text())
     if args.report_only:
         consolidate(output, manifest, rois)
         return
-    import detector
+    if __package__:
+        from . import detector
+    else:
+        import detector
     detect = ev.detector_with_boxes(detector)
     identity = dict(model_sha256=hashlib.sha256((ROOT/'models/layerlock.pt').read_bytes()).hexdigest(),
                     sampling_seconds=2, thresholds='unchanged detector.py conf=0.25',
                     python=sys.version,opencv=cv2.__version__,class_names=detector.model.names,
                     device=str(next(detector.model.model.parameters()).device))
     (output / 'run_metadata.json').write_text(json.dumps(identity,indent=2),encoding='utf-8')
-    for source in sorted((ROOT / 'test_videos').glob('*')):
+    for source in sorted((ROOT / 'datasets' / 'videos').glob('*')):
         if not source.is_file() or source.suffix.lower() != '.mp4':
             continue
         m = manifest.get(source.name,{})

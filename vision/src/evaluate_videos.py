@@ -1,8 +1,8 @@
 """Evaluate prerecorded constant-FPS clips; timestamps are clip-relative.
 
 Examples (from repository root):
-    python vision/evaluate_videos.py --source vision/test_videos/example.mp4
-    python vision/evaluate_videos.py --all
+    python vision/src/evaluate_videos.py --source vision/datasets/videos/example.mp4
+    python vision/src/evaluate_videos.py --all
 
 Bed-adhesion onset annotations are context, not spaghetti ground truth.
 """
@@ -19,7 +19,7 @@ import time
 
 import cv2
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 FIELDS = [
     "video", "frame_index", "clip_timestamp_seconds", "spaghetti_detected",
     "highest_spaghetti_confidence", "predicted_categories", "detections_json",
@@ -123,7 +123,7 @@ def sample_index(sample: int, fps: float) -> int:
 
 
 def load_manifest() -> dict:
-    path = ROOT / "test_videos_manifest.csv"
+    path = ROOT / "datasets" / "test_videos_manifest.csv"
     if not path.exists():
         return {}
     try:
@@ -318,7 +318,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--source", type=Path, help="Path to a prerecorded video")
-    group.add_argument("--all", action="store_true", help="Evaluate all MP4s in vision/test_videos")
+    group.add_argument("--all", action="store_true", help="Evaluate all MP4s in vision/datasets/videos")
     roi_group = parser.add_mutually_exclusive_group()
     roi_group.add_argument("--roi", nargs=4, type=int, metavar=("X", "Y", "WIDTH", "HEIGHT"),
                            help="Fixed ROI in full-frame pixels; same coordinates for each --all video")
@@ -331,14 +331,17 @@ def main() -> int:
         parser.error("--compare requires --roi or --select-roi")
     if not math.isfinite(args.roi_frame_seconds) or args.roi_frame_seconds < 0:
         parser.error("--roi-frame-seconds must be finite and nonnegative")
-    sources = (sorted(p for p in (ROOT / "test_videos").glob("*")
+    sources = (sorted(p for p in (ROOT / "datasets" / "videos").glob("*")
                       if p.is_file() and p.suffix.lower() == ".mp4")
                if args.all else [args.source.resolve()])
     if not sources or any(not p.is_file() for p in sources):
         print("No videos found, or source is not a file", file=sys.stderr)
         return 2
     try:
-        import detector
+        if __package__:
+            from . import detector
+        else:
+            import detector
         detect_failure = detector_with_boxes(detector)
     except Exception as error:
         print(f"Cannot load detector/model: {error}. Use the project's Python environment.", file=sys.stderr)

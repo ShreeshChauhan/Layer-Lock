@@ -1,6 +1,6 @@
 # Full dataset workflow
 
-The original downloader selected only five entries. `dataset_sequences.csv` is a
+The original downloader selected only five entries. `vision/datasets/dataset_sequences.csv` is a
 snapshot of the upstream 30-row metadata retrieved on October 24, 2026:
 https://raw.githubusercontent.com/EmptyDeck/3DPrint-Failure-Video-Dataset/master/metadata/sequences.csv
 
@@ -11,16 +11,16 @@ without cookies, authentication, geo bypass, or DRM workarounds.
 
 ```powershell
 # Ensure ffmpeg and ffprobe are on this terminal's PATH first.
-.venv/Scripts/python.exe vision/download_test_videos.py --all
+.venv/Scripts/python.exe vision/src/download_test_videos.py --all
 
 # Review four frames per clip and document per-video rectangles.
-.venv/Scripts/python.exe vision/evaluate_dataset.py --prepare-reviews
+.venv/Scripts/python.exe vision/src/evaluate_dataset.py --prepare-reviews
 
 # Run all available MP4s, reusing the existing evaluator and detector.
-.venv/Scripts/python.exe vision/evaluate_dataset.py --output vision/results/dataset_all --resume
+.venv/Scripts/python.exe vision/src/evaluate_dataset.py --output vision/results/dataset_all --resume
 
 # Refresh reports after adding visual review notes without re-running YOLO.
-.venv/Scripts/python.exe vision/evaluate_dataset.py --output vision/results/dataset_all --report-only
+.venv/Scripts/python.exe vision/src/evaluate_dataset.py --output vision/results/dataset_all --report-only
 ```
 
 Without `--all`, the downloader still selects the initial five. Both modes retain
@@ -29,7 +29,7 @@ downloading or replacing existing metadata. Existing clips are decoded and check
 before reuse. Upstream metadata names occasionally differ from display labels; the
 original five retain their filenames, and other filenames use metadata names.
 
-`dataset_rois.json` documents reviewed rectangles in original image pixels, keyed
+`vision/config/dataset_rois.json` documents reviewed rectangles in original image pixels, keyed
 by dataset label. ROIs are intentionally different across clips, including changes
 within one printer setup when object height or motion differs. A video without a
 reviewed ROI still receives full-frame inference and an explicit `not_evaluated`
@@ -55,7 +55,7 @@ Outputs under `vision/results/dataset_all/`:
 - Per-video folders: comparisons, CSVs, summaries, every sampled preview and every
   positive screenshot. Initial exploratory result folders remain untouched.
 
-`dataset_visual_review.json` stores **assistant visual observations**, not human
+`vision/datasets/dataset_visual_review.json` stores **assistant visual observations**, not human
 ground truth. Assessments distinguish `correct_spaghetti_candidate`,
 `suspected_false_spaghetti`, and `uncertain_requires_manual_review`. The CSV keeps
 human_ground_truth empty and validation_label unreviewed. No precision or recall
@@ -74,3 +74,24 @@ ROI inspection does not guarantee coverage of all motion or flying debris. ROIs
 were selected using the same evaluation clips, so this is exploratory analysis,
 not a held-out accuracy estimate. Frame-level inference times include annotation,
 ROI adaptation and warmup; they are not a controlled speed benchmark.
+
+## Layout and checks
+
+Programs live in `vision/src/`, offline tests and image fixtures in `vision/tests/`,
+ROI configuration in `vision/config/`, and catalog/manifest/review metadata in
+`vision/datasets/`. Downloaded videos live in `vision/datasets/videos/`; weights
+remain in `vision/models/`. Generated reports, screenshots, captures, and logs
+live in `vision/results/` and are excluded from Git along with videos and weights.
+Existing detailed guides are in `vision/docs/`.
+
+From the repository root, install dependencies with
+`python -m pip install -r vision/requirements.txt`. FFmpeg and FFprobe must be
+installed separately and on PATH for downloading/verifying clips.
+Run the offline suite with:
+
+```powershell
+.venv/Scripts/python.exe -m unittest discover -s vision/tests -p "test_*.py" -v
+```
+
+Direct script commands above remain supported; module execution also works,
+for example `python -m vision.src.evaluate_videos --all`.

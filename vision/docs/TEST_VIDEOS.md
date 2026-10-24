@@ -3,15 +3,15 @@
 Run from the repository root with Python 3.10 or newer:
 
 ```powershell
-python -m pip install -U yt-dlp
+python -m pip install -r vision/requirements.txt
 # Install FFmpeg (including ffprobe), then reopen your terminal if PATH changed.
 winget install --id Gyan.FFmpeg --exact
 ffmpeg -version
 ffprobe -version
-python vision/download_test_videos.py
+python vision/src/download_test_videos.py
 ```
 
-Use `python vision/download_test_videos.py --plan` to generate the initial CSV
+Use `python vision/src/download_test_videos.py --plan` to generate the initial CSV
 without downloads (does not overwrite an existing manifest). Rerun normally to
 retry failed clips; existing clips are decoded and duration-checked before reuse.
 Use `--overwrite` to regenerate them. Exit codes: 0 success, 1 per-video failure,
@@ -19,12 +19,13 @@ Use `--overwrite` to regenerate them. Exit codes: 0 success, 1 per-video failure
 be required by current yt-dlp YouTube extraction; follow yt-dlp's official setup
 documentation if its diagnostics request one: https://github.com/yt-dlp/yt-dlp#installation.
 
-Outputs are video-only H.264 MP4s in `vision/test_videos/`, with no resizing.
-The tracked `vision/test_videos_manifest.csv` records source links, dataset labels,
+Outputs are video-only H.264 MP4s in `vision/datasets/videos/`, with no resizing.
+The tracked `vision/datasets/test_videos_manifest.csv` records source links, dataset labels,
 annotations, intended/actual ranges, filenames, status, and errors. A planned row
 is not evidence of a downloaded video. Temporary downloads stay inside the output
-directory and are cleaned up after each attempt. Only five sources are attempted;
-unavailable sources are reported rather than silently substituted.
+directory and are cleaned up after each attempt. Five sources are attempted by default;
+use `--all` for all 30 catalog entries. See [the full dataset workflow](DATASET_EVALUATION.md).
+Unavailable sources are reported rather than silently substituted.
 
 ## Provenance and interpretation
 
@@ -74,13 +75,19 @@ public downloads are unavailable.
 
 ## Verification in this workspace
 
-The execution environment has Python but lacks yt-dlp, FFmpeg, and FFprobe.
-Shell access to GitHub failed DNS resolution. The script was therefore tested
-offline; no MP4 downloads have been verified here. Run the commands above on a
-machine with the dependencies and permitted network access.
+The workspace contains 30 previously verified MP4 clips. Their source URLs,
+onsets, and download status are retained in `vision/datasets/test_videos_manifest.csv`.
+Videos, model weights, and generated results are local ignored artifacts, so a
+fresh checkout requires downloading permitted clips and model weights separately.
+
+Download weights with `python vision/src/download_model.py`. Run live monitoring
+with `python vision/src/inference.py`, or save camera frames with
+`python vision/src/capture.py`. Captures go to `vision/results/captures/`.
+For a still image, run `python vision/src/detector.py vision/tests/images/spaghetti.png`;
+the annotated image is saved to `vision/results/detection_result.jpg`.
 
 Offline logic checks:
 
 ```powershell
-python -m unittest discover -s vision -p test_download_test_videos.py
+python -m unittest discover -s vision/tests -p test_download_test_videos.py
 ```

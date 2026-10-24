@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
-VISION_DIR = Path(__file__).parent
+VISION_DIR = Path(__file__).resolve().parents[1]
 MODEL_DIR = VISION_DIR / "models"
 
 SOURCE_MODEL = MODEL_DIR / "yolov11-3d-print-failure-detection"
@@ -69,7 +69,7 @@ def detect_failure(frame):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python vision/detector.py <image_path>")
+        print("Usage: python vision/src/detector.py <image_path>")
         sys.exit(1)
 
     image_path = Path(sys.argv[1])
@@ -82,7 +82,8 @@ if __name__ == "__main__":
 
     print(json.dumps(response, indent=2))
 
-    output_path = VISION_DIR / "detection_result.jpg"
+    output_path = VISION_DIR / "results" / "detection_result.jpg"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(output_path), annotated_image)
 
     print(f"Detection image saved to: {output_path}")

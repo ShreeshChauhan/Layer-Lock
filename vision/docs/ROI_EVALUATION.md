@@ -4,13 +4,13 @@ Run from the repository root using the project's environment:
 
 ```powershell
 # Fixed pixel rectangle: x, y, width, height (not x1, y1, x2, y2).
-.venv/Scripts/python.exe vision/evaluate_videos.py --source vision/test_videos/bed_adhesion_YellowEarly_Y8H8eqtemuk_onset_120s.mp4 --roi 280 590 540 130 --compare
+.venv/Scripts/python.exe vision/src/evaluate_videos.py --source vision/datasets/videos/bed_adhesion_YellowEarly_Y8H8eqtemuk_onset_120s.mp4 --roi 280 590 540 130 --compare
 
 # Select a rectangle on a representative frame at clip second 20.
-.venv/Scripts/python.exe vision/evaluate_videos.py --source vision/test_videos/bed_adhesion_YellowEarly_Y8H8eqtemuk_onset_120s.mp4 --select-roi --roi-frame-seconds 20 --compare
+.venv/Scripts/python.exe vision/src/evaluate_videos.py --source vision/datasets/videos/bed_adhesion_YellowEarly_Y8H8eqtemuk_onset_120s.mp4 --select-roi --roi-frame-seconds 20 --compare
 
 # Original full-frame behavior; no ROI.
-.venv/Scripts/python.exe vision/evaluate_videos.py --all
+.venv/Scripts/python.exe vision/src/evaluate_videos.py --all
 ```
 
 OpenCV selection requires a desktop GUI. Drag a rectangle and press Enter/Space
@@ -46,7 +46,7 @@ it is not a controlled performance benchmark.
 
 ## YellowEarly run
 
-Results directory: `results/20261024_022142_762322/bed_adhesion_YellowEarly_Y8H8eqtemuk_onset_120s/`.
+Results directory (from repository root): `vision/results/20261024_022142_762322/bed_adhesion_YellowEarly_Y8H8eqtemuk_onset_120s/`.
 The chosen rectangle `(280, 590, 540, 130)` covers the lower print/bed area in the
 960x720 video. The moving print head occludes much of the object. This is a test
 ROI, not a general-purpose validated setting for other videos.
@@ -77,4 +77,4 @@ changes model input scaling, and may hide actual filament/debris. Validate again
 manually confirmed spaghetti-positive videos and inspect both full/ROI views before
 adopting this crop. Existing test images and prior result folders are unchanged.
 
-Tests: `.venv/Scripts/python.exe -m unittest discover -s vision -p test_evaluate_videos.py`
+Tests: `.venv/Scripts/python.exe -m unittest discover -s vision/tests -p test_evaluate_videos.py`
