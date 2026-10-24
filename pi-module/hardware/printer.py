@@ -6,6 +6,8 @@ Rules for this module:
     treat it as an alert. Nothing fails silently.
 """
 import logging
+from pathlib import Path
+from urllib.parse import quote
 
 import requests
 
@@ -21,8 +23,13 @@ class PrinterError(Exception):
 class OctoPrintUnreachable(PrinterError):
     """OctoPrint did not answer at all (down, wrong address, timeout)."""
 
+
 class ResumeBlocked(PrinterError):
     """Resume refused: heater is off or the nozzle is too cold."""
+
+
+class PrintBlocked(PrinterError):
+    """Start refused: printer is not idle and ready."""
 
 
 def check_resume_ready(state: dict, min_temp: float | None = None) -> str | None:
@@ -39,6 +46,17 @@ def check_resume_ready(state: dict, min_temp: float | None = None) -> str | None
     return None
 
 
+def check_start_ready(state: dict) -> str | None:
+    """Return a reason string if starting a print is unsafe, else None."""
+    if not state.get("connected"):
+        return "printer is not connected to OctoPrint"
+    if state.get("printing") or state.get("paused"):
+        return "a job is already running or paused"
+    if str(state.get("state", "")).lower() != "operational":
+        return f"printer state is '{state.get('state')}', needs 'Operational'"
+    return None
+
+
 class OctoPrinter:
     def __init__(self, base: str | None = None, key: str | None = None, timeout: float | None = None):
         self.base = (base or config.OCTO_URL).rstrip("/")
@@ -50,9 +68,11 @@ class OctoPrinter:
         self.session.headers.update({"X-Api-Key": key})
 
     # -- low level ---------------------------------------------------------
-    def _request(self, method: str, path: str, body: dict | None = None, ok: tuple = (200, 204)):
+    def _request(self, method: str, path: str, body: dict | None = None, ok: tuple = (200, 204),
+                 files=None, timeout: float | None = None):
         try:
-            r = self.session.request(method, self.base + path, json=body, timeout=self.timeout)
+            r = self.session.request(method, self.base + path, json=body, files=files,
+                                     timeout=timeout or self.timeout)
         except requests.RequestException as e:
             raise OctoPrintUnreachable(f"OctoPrint unreachable at {self.base}: {e}") from e
         if r.status_code not in ok:
@@ -81,7 +101,6 @@ class OctoPrinter:
         self._request("POST", "/api/printer/bed", {"command": "target", "target": bed_c})
         log.warning("Printer: heaters set to %s/%s", nozzle_c, bed_c)
 
-        
     def heaters_off(self) -> None:
         """Set nozzle and bed targets to 0. Tries both even if the first fails."""
         errors = []
@@ -116,6 +135,58 @@ class OctoPrinter:
                 log.error("safe_stop step %s failed: %s", name, e)
                 result[name] = f"error: {e}"
         return result
+
+    # -- starting prints ---------------------------------------------------
+    def list_files(self) -> list[dict]:
+        """G-code files stored on OctoPrint (recursive). Each has name, path, size, date."""
+        data = self._request("GET", "/api/files/local?recursive=true").json()
+        out = []
+
+        def walk(items):
+            for f in items:
+                if f.get("type") == "folder":
+                    walk(f.get("children", []))
+                elif f.get("type") == "machinecode":
+                    out.append({"name": f.get("name"), "path": f.get("path"),
+                                "size": f.get("size"), "date": f.get("date")})
+
+        walk(data.get("files", []))
+        return out
+
+    def upload_file(self, local_path: str, remote_name: str | None = None) -> str:
+        """Upload a .gcode file to OctoPrint without starting it. Returns the remote path."""
+        p = Path(local_path)
+        if not p.is_file():
+            raise PrinterError(f"file not found: {local_path}")
+        if p.suffix.lower() not in (".gcode", ".gco", ".g"):
+            raise PrinterError(f"not a G-code file: {p.name} (slice it first)")
+        name = remote_name or p.name
+        with p.open("rb") as fh:
+            r = self._request("POST", "/api/files/local", files={"file": (name, fh)},
+                              ok=(200, 201), timeout=getattr(config, "UPLOAD_TIMEOUT", 120))
+        path = r.json().get("files", {}).get("local", {}).get("path", name)
+        log.info("Printer: uploaded %s", path)
+        return path
+
+    def start_print(self, remote_path: str, force: bool = False) -> None:
+        """Select a file already on OctoPrint and start printing it."""
+        if not force:
+            reason = check_start_ready(self.get_printer_state())
+            if reason:
+                raise PrintBlocked(f"start blocked: {reason}")
+        self._request("POST", f"/api/files/local/{quote(remote_path)}",
+                      {"command": "select", "print": True})
+        log.warning("Printer: print started: %s", remote_path)
+
+    def print_file(self, local_path: str, force: bool = False) -> str:
+        """Upload a local .gcode file and start it. Checks readiness before uploading."""
+        if not force:
+            reason = check_start_ready(self.get_printer_state())
+            if reason:
+                raise PrintBlocked(f"start blocked: {reason}")
+        remote = self.upload_file(local_path)
+        self.start_print(remote, force=force)
+        return remote
 
     # -- queries -----------------------------------------------------------
     def get_printer_state(self) -> dict:
@@ -176,13 +247,22 @@ class MockPrinter:
         log.warning("[mock] pause")
         self.state = "Paused"
 
-    def resume_printer(self):
+    def resume_printer(self, force: bool = False):
+        if not force:
+            reason = check_resume_ready(self.get_printer_state())
+            if reason:
+                raise ResumeBlocked(f"resume blocked: {reason}")
         log.info("[mock] resume")
         self.state = "Printing"
 
     def cancel_printer(self):
         log.warning("[mock] cancel")
         self.state = "Operational"
+
+    def heaters_on(self, nozzle_c: float = 200, bed_c: float = 60):
+        log.warning("[mock] heaters on %s/%s", nozzle_c, bed_c)
+        self.temps["tool0"].update(target=float(nozzle_c), actual=float(nozzle_c))
+        self.temps["bed"].update(target=float(bed_c), actual=float(bed_c))
 
     def heaters_off(self):
         log.warning("[mock] heaters off")
@@ -210,3 +290,19 @@ class MockPrinter:
 
     def is_hot(self, above_c: float = 50.0) -> bool:
         return any(t["actual"] > above_c for t in self.temps.values())
+
+    def list_files(self):
+        return [{"name": "mock_part.gcode", "path": "mock_part.gcode", "size": 1234, "date": 0}]
+
+    def upload_file(self, local_path, remote_name=None):
+        log.info("[mock] upload %s", local_path)
+        return remote_name or Path(local_path).name
+
+    def start_print(self, remote_path, force=False):
+        log.warning("[mock] start %s", remote_path)
+        self.state = "Printing"
+
+    def print_file(self, local_path, force=False):
+        remote = self.upload_file(local_path)
+        self.start_print(remote, force=force)
+        return remote

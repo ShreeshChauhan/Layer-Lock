@@ -12,16 +12,12 @@ Create ONE printer and pass it around, so mock state stays consistent:
 from . import config
 from .camera import CameraError, Frame, ReplayCamera, SnapshotCamera
 from .health import HealthMonitor
-# before
-from .printer import MockPrinter, OctoPrinter, OctoPrintUnreachable, PrinterError
-
-# after
-from .printer import MockPrinter, OctoPrinter, OctoPrintUnreachable, PrinterError, ResumeBlocked
+from .printer import MockPrinter, OctoPrinter, OctoPrintUnreachable, PrinterError, ResumeBlocked, PrintBlocked
 
 
 __all__ = [
     "get_printer", "get_camera", "get_health_monitor",
-    "Frame", "CameraError", "PrinterError", "OctoPrintUnreachable", "ResumeBlocked",
+    "Frame", "CameraError", "PrinterError", "OctoPrintUnreachable", "ResumeBlocked", "PrintBlocked",
 ]
 
 
