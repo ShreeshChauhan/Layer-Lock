@@ -26,7 +26,7 @@ FIELDS = [
     "inference_ms", "status", "error", "screenshot", "source_url",
     "failure_category", "source_timestamp_seconds", "source_failure_onset_seconds",
     "clip_failure_onset_seconds", "manifest_clip_start_seconds",
-    "roi_xywh", "preview",
+    "roi_xywh", "preview", "confidence_threshold",
 ]
 
 
@@ -76,14 +76,14 @@ def select_video_roi(source, roi, interactive=False, seconds=0.0):
         capture.release()
 
 
-def detector_with_boxes(detector):
-    """Reuse the same prediction, without changing detector.py or running YOLO twice.
+def detector_with_boxes(detector, conf=0.25):
+    """Reuse the same prediction without running YOLO twice.
 
     detect_failure omits boxes from its response. Ultralytics retains the Results
     used by that call in model.predictor.results. This evaluator is sequential.
     """
     def detect(frame):
-        response, annotated = detector.detect_failure(frame)
+        response, annotated = detector.detect_failure(frame, conf=conf)
         result = detector.model.predictor.results[0]
         boxes = result.boxes.xyxy.cpu().tolist()
         if len(boxes) != len(response["detections"]):
@@ -153,13 +153,13 @@ def timing_context(metadata: dict, timestamp: float) -> dict:
 
 
 def evaluate(source: Path, destination: Path, detect_failure, metadata: dict,
-             roi=None, preview_roi=None, save_previews=False) -> dict:
+             roi=None, preview_roi=None, save_previews=False, conf=0.25) -> dict:
     destination.mkdir(parents=True, exist_ok=True)
     summary = dict(video=str(source), frames_analyzed=0, spaghetti_detections=0,
                    maximum_confidence=0.0, first_spaghetti_clip_seconds=None,
                    average_inference_ms=None, model_errors=0, decode_errors=0,
                    screenshot_errors=0, status="ok", manifest=metadata, roi_xywh=roi,
-                   bbox_coordinate_system="full-frame pixels, xyxy")
+                   bbox_coordinate_system="full-frame pixels, xyxy", confidence_threshold=conf)
     elapsed = 0.0
     attempts = 0
     capture = cv2.VideoCapture(str(source))
@@ -191,6 +191,7 @@ def evaluate(source: Path, destination: Path, detect_failure, metadata: dict,
                         writer.writerow(dict(video=source.name, frame_index=frame_index,
                                              clip_timestamp_seconds=frame_index / fps,
                                              status="decode_error",
+                                             confidence_threshold=conf,
                                              error="Decoding stopped before expected EOF",
                                              **timing_context(metadata, frame_index / fps)))
                     elif count is None:
@@ -201,6 +202,7 @@ def evaluate(source: Path, destination: Path, detect_failure, metadata: dict,
                         validate_roi(roi, frame.shape)
                     timestamp = frame_index / fps
                     row = dict(video=source.name, frame_index=frame_index,
+                               confidence_threshold=conf,
                                clip_timestamp_seconds=round(timestamp, 6), status="ok",
                                roi_xywh=json.dumps(roi) if roi is not None else "",
                                **timing_context(metadata, timestamp))
@@ -268,6 +270,7 @@ def evaluate(source: Path, destination: Path, detect_failure, metadata: dict,
     first = summary["first_spaghetti_clip_seconds"]
     average = summary["average_inference_ms"]
     print(f"{source.name}: {summary['frames_analyzed']} frames analyzed, "
+          f"confidence threshold {conf:g}, "
           f"{summary['spaghetti_detections']} spaghetti detections, "
           f"max confidence {summary['maximum_confidence']:.4f}, "
           f"first detection {f'{first:.3f}s (clip)' if first is not None else 'none'}, "
@@ -302,6 +305,8 @@ def compare_results(destination, baseline, cropped):
                          full_spaghetti=b, roi_spaghetti=a, outcome=outcome,
                          full_confidence=before.get("highest_spaghetti_confidence", ""),
                          roi_confidence=after.get("highest_spaghetti_confidence", ""),
+                         full_confidence_threshold=baseline.get("confidence_threshold", 0.25),
+                         roi_confidence_threshold=cropped.get("confidence_threshold", 0.25),
                          full_preview=before.get("preview", ""), roi_preview=after.get("preview", ""),
                          validation_label="unreviewed"))
     with (destination / "comparison.csv").open("w", newline="", encoding="utf-8") as handle:
@@ -326,7 +331,11 @@ def main() -> int:
     parser.add_argument("--roi-frame-seconds", type=float, default=0.0,
                         help="Clip-relative representative frame time for ROI preview/selection")
     parser.add_argument("--compare", action="store_true", help="Run full-frame and ROI modes; retain all sampled previews")
+    parser.add_argument("--conf", type=float, default=0.25,
+                        help="YOLO confidence threshold between 0 and 1 (default: 0.25)")
     args = parser.parse_args()
+    if not math.isfinite(args.conf) or not 0 <= args.conf <= 1:
+        parser.error("--conf must be a finite number between 0 and 1")
     if args.compare and not (args.roi or args.select_roi):
         parser.error("--compare requires --roi or --select-roi")
     if not math.isfinite(args.roi_frame_seconds) or args.roi_frame_seconds < 0:
@@ -342,7 +351,7 @@ def main() -> int:
             from . import detector
         else:
             import detector
-        detect_failure = detector_with_boxes(detector)
+        detect_failure = detector_with_boxes(detector, conf=args.conf)
     except Exception as error:
         print(f"Cannot load detector/model: {error}. Use the project's Python environment.", file=sys.stderr)
         return 2
@@ -362,13 +371,13 @@ def main() -> int:
             metadata = manifest.get(source.name, {})
             if args.compare:
                 full = evaluate(source, destination / "full_frame", detect_failure, metadata,
-                                preview_roi=roi, save_previews=True)
+                                preview_roi=roi, save_previews=True, conf=args.conf)
                 cropped = evaluate(source, destination / "roi", detect_failure, metadata,
-                                   roi=roi, save_previews=True)
+                                   roi=roi, save_previews=True, conf=args.conf)
                 compare_results(destination, full, cropped)
                 summaries.extend([full, cropped])
             else:
-                summaries.append(evaluate(source, destination, detect_failure, metadata, roi=roi))
+                summaries.append(evaluate(source, destination, detect_failure, metadata, roi=roi, conf=args.conf))
         except (ValueError, OSError, cv2.error) as error:
             print(f"{source.name}: {error}", file=sys.stderr)
             summaries.append({"status": "error"})

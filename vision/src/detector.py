@@ -22,12 +22,12 @@ if not MODEL_PATH.exists():
 model = YOLO(str(MODEL_PATH))
 
 
-def detect_failure(frame):
+def detect_failure(frame, conf=0.25):
     """Detect 3D-print defects in an OpenCV image."""
 
     results = model.predict(
         source=frame,
-        conf=0.25,
+        conf=conf,
         verbose=False
     )
 

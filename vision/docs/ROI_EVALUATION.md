@@ -13,6 +13,11 @@ Run from the repository root using the project's environment:
 .venv/Scripts/python.exe vision/src/evaluate_videos.py --all
 ```
 
+Add `--conf 0.5` to set the YOLO confidence threshold for either full-frame or ROI
+inference (both modes in `--compare`). The default remains `0.25`; values must be
+finite and between 0 and 1. The selected threshold is recorded in `frames.csv`,
+`summary.json`, comparison reports, and the printed per-video summary.
+
 OpenCV selection requires a desktop GUI. Drag a rectangle and press Enter/Space
 to confirm. Canceling or selecting an empty/out-of-bounds rectangle rejects that
 video. In headless environments, use coordinates. With `--all --select-roi`, select
