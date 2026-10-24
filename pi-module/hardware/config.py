@@ -40,3 +40,4 @@ FROZEN_DIFF = _float("FROZEN_DIFF", 0.05)         # mean pixel diff between fram
 FROZEN_COUNT = _int("FROZEN_COUNT", 3)            # consecutive identical frames before "frozen"
 PI_TEMP_WARN_C = _float("PI_TEMP_WARN_C", 75)
 PI_TEMP_CRIT_C = _float("PI_TEMP_CRIT_C", 80)
+RESUME_MIN_TEMP_C = _float("RESUME_MIN_TEMP_C", 180)  # nozzle must be at least this hot to resume

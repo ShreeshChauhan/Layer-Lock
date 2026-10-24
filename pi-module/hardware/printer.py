@@ -21,6 +21,23 @@ class PrinterError(Exception):
 class OctoPrintUnreachable(PrinterError):
     """OctoPrint did not answer at all (down, wrong address, timeout)."""
 
+class ResumeBlocked(PrinterError):
+    """Resume refused: heater is off or the nozzle is too cold."""
+
+
+def check_resume_ready(state: dict, min_temp: float | None = None) -> str | None:
+    """Return a reason string if resuming is unsafe, else None."""
+    min_temp = config.RESUME_MIN_TEMP_C if min_temp is None else min_temp
+    tool = state.get("temps", {}).get("tool0")
+    if tool is None:
+        return "no nozzle temperature reading"
+    if not (tool.get("target") or 0) > 0:
+        return "nozzle heater is off (target 0)"
+    actual = tool.get("actual") or 0
+    if actual < min_temp:
+        return f"nozzle is only {actual:.0f}C, needs {min_temp:.0f}C (still heating?)"
+    return None
+
 
 class OctoPrinter:
     def __init__(self, base: str | None = None, key: str | None = None, timeout: float | None = None):
@@ -47,7 +64,11 @@ class OctoPrinter:
         self._request("POST", "/api/job", {"command": "pause", "action": "pause"})
         log.warning("Printer: pause sent")
 
-    def resume_printer(self) -> None:
+    def resume_printer(self, force: bool = False) -> None:
+        if not force:
+            reason = check_resume_ready(self.get_printer_state())
+            if reason:
+                raise ResumeBlocked(f"resume blocked: {reason}")
         self._request("POST", "/api/job", {"command": "pause", "action": "resume"})
         log.info("Printer: resume sent")
 
@@ -55,6 +76,12 @@ class OctoPrinter:
         self._request("POST", "/api/job", {"command": "cancel"})
         log.warning("Printer: cancel sent")
 
+    def heaters_on(self, nozzle_c: float = 200, bed_c: float = 60) -> None:
+        self._request("POST", "/api/printer/tool", {"command": "target", "targets": {"tool0": nozzle_c}})
+        self._request("POST", "/api/printer/bed", {"command": "target", "target": bed_c})
+        log.warning("Printer: heaters set to %s/%s", nozzle_c, bed_c)
+
+        
     def heaters_off(self) -> None:
         """Set nozzle and bed targets to 0. Tries both even if the first fails."""
         errors = []
