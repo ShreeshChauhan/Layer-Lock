@@ -32,6 +32,7 @@ class DownloadTests(unittest.TestCase):
     def test_failure_does_not_stop_remaining_sources(self):
         with tempfile.TemporaryDirectory(dir=downloader.ROOT) as folder:
             with patch.object(downloader, 'OUTPUT', Path(folder)), \
+                 patch.object(downloader, 'MANIFEST', Path(folder) / 'manifest.csv'), \
                  patch.object(downloader.shutil, 'which', return_value='found'), \
                  patch.object(downloader.importlib.util, 'find_spec', return_value=True), \
                  patch.object(downloader, 'process', side_effect=RuntimeError('Unavailable')) as process, \

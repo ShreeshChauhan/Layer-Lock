@@ -1,0 +1,268 @@
+[
+  {
+    "video": "BlackEarly",
+    "mode": "full_frame",
+    "clip_seconds": 36,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box covers the rear illustrated/background area above the print head, not the black print at bed level."
+  },
+  {
+    "video": "BlackWobbly",
+    "mode": "full_frame",
+    "clip_seconds": 6,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box is on the patterned background/cable beside the print head, not loose filament on the black object."
+  },
+  {
+    "video": "BlueHourse",
+    "mode": "full_frame",
+    "clip_seconds": 48,
+    "assessment": "correct_spaghetti_candidate",
+    "note": "Box encloses visible loose blue filament above/left of the fallen blue print. Strong visual positive candidate, requiring human confirmation."
+  },
+  {
+    "video": "BlueHourse",
+    "mode": "roi",
+    "clip_seconds": 52,
+    "assessment": "correct_spaghetti_candidate",
+    "note": "Cropped mode still detects visible loose filament near the fallen print. Do not discard this positive when selecting a tighter ROI."
+  },
+  {
+    "video": "BlueMonk",
+    "mode": "full_frame",
+    "clip_seconds": 26,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box overlaps the patterned background seen through/beside the tilting blue figure; no clear free spaghetti established from this view."
+  },
+  {
+    "video": "P2RedSkull",
+    "mode": "full_frame",
+    "clip_seconds": 30,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box targets white cables/PC equipment behind the bed, not the red printed material."
+  },
+  {
+    "video": "P2RedSkull",
+    "mode": "roi",
+    "clip_seconds": 28,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box spans material near the red print and bright background/nozzle features; resolution and occlusion prevent confirming whether this is extruded spaghetti."
+  },
+  {
+    "video": "PinkNetriti",
+    "mode": "roi",
+    "clip_seconds": 22,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Low-confidence box overlaps the pink print immediately after bed-adhesion onset; possible deformed print versus loose filament. Onset alone cannot validate it."
+  },
+  {
+    "video": "WhiteHorseback",
+    "mode": "full_frame",
+    "clip_seconds": 38,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "White material near the object is boxed; blur and nozzle occlusion make spaghetti versus the intended print geometry ambiguous."
+  },
+  {
+    "video": "WhiteHorseback",
+    "mode": "roi",
+    "clip_seconds": 20,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "White material at bed level is boxed at annotated adhesion onset. Requires human review; this is not automatically a true spaghetti detection."
+  },
+  {
+    "video": "YellowEarly",
+    "mode": "full_frame",
+    "clip_seconds": 44,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Boxes target background objects above and left of the extruder rather than the green print. Earlier 4-second example targets the Ender logo."
+  },
+  {
+    "video": "BlueMonk",
+    "mode": "roi",
+    "clip_seconds": 36,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box lies along the blue object upper rim near the patterned background and nozzle. Could be edge texture or real extruded strands; no reliable human label."
+  },
+  {
+    "video": "OrangeLibery",
+    "mode": "full_frame",
+    "clip_seconds": 54,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Tall box runs along the patterned background beside the tilted orange statue rather than a clear filament tangle."
+  },
+  {
+    "video": "PinkMan",
+    "mode": "full_frame",
+    "clip_seconds": 40,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Upper edge of the falling pink part and patterned background are boxed together; adhesion failure is obvious but spaghetti cannot be established."
+  },
+  {
+    "video": "PinkMan",
+    "mode": "roi",
+    "clip_seconds": 36,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "ROI retains a top-rim/background prediction near the collapsing pink part. Reduced scene context does not resolve class ambiguity."
+  },
+  {
+    "video": "RedHeart",
+    "mode": "roi",
+    "clip_seconds": 22,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box overlaps the intended red geometry/blurred central hole; no visible loose-filament tangle is established."
+  },
+  {
+    "video": "WhiteBoat",
+    "mode": "full_frame",
+    "clip_seconds": 58,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box overlaps cables/strands behind the boat and under the nozzle. Background cable versus extruded filament needs higher-resolution temporal review."
+  },
+  {
+    "video": "WhiteBust",
+    "mode": "full_frame",
+    "clip_seconds": 16,
+    "assessment": "mixed_suspected_false_and_uncertain",
+    "note": "One box clearly targets the Ender logo (suspected false); a second overlaps white print/support geometry and is uncertain. Do not label the whole frame correct from either confidence."
+  },
+  {
+    "video": "WhiteBust",
+    "mode": "roi",
+    "clip_seconds": 14,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box overlaps a white support/print feature; no clear free-filament tangle is established. Cropping removes logo but leaves geometry confusions."
+  },
+  {
+    "video": "WhiteNetiri_Fallover",
+    "mode": "full_frame",
+    "clip_seconds": 54,
+    "assessment": "mixed_positive_and_false_candidates",
+    "note": "Top box encloses loose white loops attached near the nozzle after the head falls (positive candidate), while lower boxes cover background clutter/hardware (suspected false). Human instance-level labeling is required."
+  },
+  {
+    "video": "WhiteTotem",
+    "mode": "full_frame",
+    "clip_seconds": 48,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Large overlapping boxes cover the sculpture, nozzle region and patterned background. Some loose material may be present, but these boxes are not clean evidence of spaghetti instances."
+  },
+  {
+    "video": "WhiteTotem",
+    "mode": "roi",
+    "clip_seconds": 34,
+    "assessment": "suspected_false_spaghetti",
+    "note": "The strongest cropped box follows the right object edge and patterned backdrop, rather than the visible thin strand near the upper-left rim. Cropping amplified this edge/background confusion."
+  },
+  {
+    "video": "WhiteNetiri_Fallover",
+    "mode": "roi",
+    "clip_seconds": 36,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Large cropped-mode box covers background objects behind the fallen head, demonstrating that a broad ROI cannot remove all background distractors."
+  },
+  {
+    "video": "BlueHourse",
+    "mode": "roi",
+    "clip_seconds": 48,
+    "assessment": "possible_missed_spaghetti_candidate",
+    "note": "Loose blue filament is visibly inside the retained ROI but cropped inference is negative; full-frame inference detects it at the same timestamp. This is a candidate loss caused by changed scale/context, not proof of improved accuracy from fewer detections. Requires human label before computing recall."
+  },
+  {
+    "video": "YellowOval_still",
+    "mode": "full_frame",
+    "clip_seconds": 46,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Boxes target a small base feature and a separate background/strand area while larger hanging filament remains unboxed; requires instance-level review."
+  },
+  {
+    "video": "YellowOval_still",
+    "mode": "roi",
+    "clip_seconds": 56,
+    "assessment": "correct_spaghetti_candidate",
+    "note": "Box encloses clearly visible hanging yellow loops extruded above the fallen oval. Strong visual positive candidate; human confirmation still required."
+  },
+  {
+    "video": "BlackFrancesco",
+    "mode": "full_frame",
+    "clip_seconds": 40,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box targets the black rear/right printer hardware or conduit, away from the tilted printed object."
+  },
+  {
+    "video": "BlackFrancesco",
+    "mode": "roi",
+    "clip_seconds": 0,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box covers textured black support/print geometry before adhesion onset. Could be rough supports or thin filament; onset does not decide the spaghetti label."
+  },
+  {
+    "video": "BrownAugustus",
+    "mode": "full_frame",
+    "clip_seconds": 56,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box targets an orange/white bag or background item behind the right side of the bed, away from the brown printed object."
+  },
+  {
+    "video": "BrownAugustus",
+    "mode": "roi",
+    "clip_seconds": 36,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box encloses small colored background objects visible between the brown support poles. Rectangular ROI leaves these distractors inside its bounds."
+  },
+  {
+    "video": "GreenCase",
+    "mode": "full_frame",
+    "clip_seconds": 58,
+    "assessment": "suspected_false_spaghetti",
+    "note": "High-confidence box is on the rear/right black printer hardware or conduit, not the green print."
+  },
+  {
+    "video": "P2BlueDragon",
+    "mode": "full_frame",
+    "clip_seconds": 42,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Small box is at the far left image/bed edge, away from the blue print; no clear extruded tangle is visible there."
+  },
+  {
+    "video": "P2BlueDragon",
+    "mode": "roi",
+    "clip_seconds": 40,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Low-confidence box lies on the blue sculpted surface. Surface texture versus loose filament needs detailed human labeling."
+  },
+  {
+    "video": "P2BrownBridge",
+    "mode": "full_frame",
+    "clip_seconds": 32,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Strongest box covers a plastic bag/background material high to the right of the printer, not the collapsed brown structure."
+  },
+  {
+    "video": "GreenCase",
+    "mode": "roi",
+    "clip_seconds": 18,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box covers small colored objects behind the bed visible inside the broad crop; it is not on the green case."
+  },
+  {
+    "video": "GreenSkullEarly",
+    "mode": "full_frame",
+    "clip_seconds": 56,
+    "assessment": "suspected_false_spaghetti",
+    "note": "Box targets the looped white cables by rear PCs, rather than printed green material."
+  },
+  {
+    "video": "GreenSkullEarly",
+    "mode": "roi",
+    "clip_seconds": 44,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box spans bright translucent green material near the print and background. Possible loose filament, but washout and occlusion prevent confident verification."
+  },
+  {
+    "video": "P2BrownBridge",
+    "mode": "roi",
+    "clip_seconds": 46,
+    "assessment": "uncertain_requires_manual_review",
+    "note": "Box encloses thin strands between collapsed brown supports. Extruded filament is visible, but stringing versus spaghetti and broken support geometry need a human class label."
+  }
+]

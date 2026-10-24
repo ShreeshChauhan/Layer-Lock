@@ -7,3 +7,7 @@ vision/models/
 vision/captures/
 vision/detection_result.jpg
 vision/test_videos/
+vision/results/
+
+# Generated logs
+vision/*.log

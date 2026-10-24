@@ -1,0 +1,272 @@
+{
+  "BlackEarly": {
+    "roi": [
+      320,
+      530,
+      400,
+      130
+    ],
+    "review": "Reviewed clip seconds 0,20,40,58 at 960x720. Lower central bed/black object corridor; extruder heavily occludes print. Experimental crop may exclude debris."
+  },
+  "PinkNetriti": {
+    "roi": [
+      280,
+      530,
+      440,
+      150
+    ],
+    "review": "Reviewed clip seconds 0,20,40,58 at 960x720. Pink print and its observed displacement corridor; head still occludes upper object."
+  },
+  "WhiteHorseback": {
+    "roi": [
+      160,
+      530,
+      600,
+      150
+    ],
+    "review": "Reviewed clip seconds 0,20,40,58 at 960x720. Broad lower bed corridor covering displaced white print; includes nozzle and reflected light."
+  },
+  "YellowEarly": {
+    "roi": [
+      280,
+      590,
+      540,
+      130
+    ],
+    "review": "Reviewed clip seconds 0,20,40,58 and prior paired run at 960x720. Green print corridor; lower frame crop excludes logo but cannot reveal occluded material."
+  },
+  "P2RedSkull": {
+    "roi": [
+      480,
+      440,
+      1000,
+      260
+    ],
+    "review": "Reviewed clip seconds 0,20,40,58 at 1920x1080. Different P2 camera: broad central bed region around red print/debris. Includes nozzle and some housing; excludes rear PCs and front bed hardware."
+  },
+  "BlackMoai": {
+    "roi": [
+      0,
+      0,
+      900,
+      650
+    ],
+    "review": "Reviewed 0,20,40,58 clip seconds at 960x720. Tall black print falls across nearly the entire view; broad swept-region crop retains the fall and loose strand. Little background can be excluded safely."
+  },
+  "BlackWobbly": {
+    "roi": [
+      260,
+      280,
+      700,
+      400
+    ],
+    "review": "Reviewed 0,20,40,58 clip seconds at 960x720. Black print shifts strongly toward the right edge; broad middle/lower crop covers its observed sweep, with possible nozzle overlap."
+  },
+  "BlueHourse": {
+    "roi": [
+      300,
+      180,
+      500,
+      480
+    ],
+    "review": "Reviewed 0,20,40,58 clip seconds at 960x720. Tall blue print falls rightward; crop includes both upright/fallen positions and visibly loose filament above the fallen object. Positive candidate preserved."
+  },
+  "BlueMonk": {
+    "roi": [
+      240,
+      210,
+      420,
+      430
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Upright blue figure tilts and returns; covers full object and leaning corridor, excluding most upper housing."
+  },
+  "GreenNeedle": {
+    "roi": [
+      440,
+      60,
+      340,
+      560
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Tall green column remains upright but shifts laterally; includes its full height and the nozzle-adjacent top without unrelated side equipment."
+  },
+  "OrangeLibery": {
+    "roi": [
+      350,
+      0,
+      550,
+      650
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Tall orange statue swings strongly while attached to the nozzle; broad crop spans tilted and upright positions rather than only its base."
+  },
+  "PinkMan": {
+    "roi": [
+      400,
+      280,
+      560,
+      350
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Pink torso and support structure occupy the right half; crop spans the detached cylinder and supports while excluding most upper housing."
+  },
+  "RedHeart": {
+    "roi": [
+      340,
+      160,
+      400,
+      440
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Red object stays centered but rocks with nozzle; preserves full object height and base, allowing modest lateral motion."
+  },
+  "WhiteBoat": {
+    "roi": [
+      0,
+      430,
+      700,
+      250
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. White boat shifts/rotates on left bed; retains the hull, top and surrounding debris corridor rather than following the nozzle."
+  },
+  "WhiteBust": {
+    "roi": [
+      260,
+      440,
+      450,
+      210
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. White support/print fragments remain under the head; crop covers their sideways movement and base, with substantial occlusion still present."
+  },
+  "WhiteNeitiri_SupportFail": {
+    "roi": [
+      0,
+      320,
+      500,
+      330
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. White low structure and supports beneath extruder; preserve broken/tilted fragments and surrounding bed, not only a narrow silhouette."
+  },
+  "WhiteNetiri_Fallover": {
+    "roi": [
+      80,
+      0,
+      860,
+      650
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Large head falls rightward while loose strands appear high in the scene; broad near-full-frame crop intentionally preserves both object trajectory and filament rather than suppressing background at the expense of recall."
+  },
+  "WhiteTotem": {
+    "roi": [
+      280,
+      280,
+      480,
+      380
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. White sculpted object tilts then shifts rightward; includes upper surface, base and entire observed sweep with some unavoidable nozzle overlap."
+  },
+  "YellowArch": {
+    "roi": [
+      140,
+      0,
+      800,
+      560
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Two widely separated arch legs and a fallen leg span most of the view; ROI retains both and hanging filament. Background logo between legs cannot be excluded by a single rectangle."
+  },
+  "YellowCat": {
+    "roi": [
+      360,
+      240,
+      420,
+      420
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Yellow figure translates/rotates; broad object crop retains upper loose-looking material and later rightward footprint."
+  },
+  "YellowOval_still": {
+    "roi": [
+      380,
+      180,
+      400,
+      400
+    ],
+    "review": "Reviewed 0,20,40,58 at 960x720. Yellow oval tips and develops hanging strands; includes upright/fallen body and nozzle-to-bed filament corridor rather than only the bed footprint."
+  },
+  "BlackFrancesco": {
+    "roi": [
+      880,
+      300,
+      500,
+      430
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080 (P2 camera). Narrow black printed structure under nozzle tilts left; crop covers both positions and nearby bed without rear PCs/front bed adjustment hardware."
+  },
+  "BrownAugustus": {
+    "roi": [
+      760,
+      250,
+      600,
+      430
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Brown figure and thin supports beneath nozzle; crop covers leaning structure, separate support poles and surrounding bed, excluding most rear PCs."
+  },
+  "GreenCase": {
+    "roi": [
+      800,
+      520,
+      640,
+      230
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Low green case moves along the rear-middle bed; shallow ROI retains displaced green material and nozzle tip while avoiding most extruder housing and rear objects."
+  },
+  "GreenSkullEarly": {
+    "roi": [
+      520,
+      450,
+      960,
+      250
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Green footprint and loose-looking material sweep across rear-middle bed; broader horizontal crop retains debris seen on either side of the nozzle."
+  },
+  "P2BlueDragon": {
+    "roi": [
+      320,
+      430,
+      1360,
+      420
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Two broad blue sections shift laterally and lift; wide object-level crop preserves both components and intervening strands rather than centering only the nozzle."
+  },
+  "P2BrownBridge": {
+    "roi": [
+      700,
+      200,
+      900,
+      620
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Broad brown arch and collapsing interior supports; retains whole arch plus filament near nozzle and bed without tight geometry masking."
+  },
+  "P2OrageLion": {
+    "roi": [
+      400,
+      340,
+      1400,
+      500
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Large orange print and tall support occupy much of bed width; crop retains full printed surface and base, excluding upper extruder and front hardware."
+  },
+  "P2RedVase": {
+    "roi": [
+      760,
+      300,
+      600,
+      540
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Red vase stays near center with slight tilting/translation; crop includes complete vase, top/nozzle interface, skirt and nearby bed."
+  },
+  "PinkPenholder": {
+    "roi": [
+      760,
+      540,
+      800,
+      310
+    ],
+    "review": "Reviewed 0,20,40,58 at 1920x1080. Pink low-wall object slides rightward; includes initial/final footprint and loose-looking strands on its left, excluding most upper housing."
+  }
+}

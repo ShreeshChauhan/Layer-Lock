@@ -1,4 +1,4 @@
-"""Download five annotated research clips. See TEST_VIDEOS.md for provenance."""
+"""Download annotated research clips (five by default; --all for the catalog)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parent
 OUTPUT = ROOT / "test_videos"
@@ -40,9 +41,9 @@ def clip_range(onset: float, duration: float) -> tuple[float, float]:
     return start, start + length
 
 
-def planned_rows() -> list[dict]:
+def planned_rows(selection=None) -> list[dict]:
     rows = []
-    for label, sequence, video_id, onset, duration in SELECTION:
+    for label, sequence, video_id, onset, duration in SELECTION if selection is None else selection:
         start, end = clip_range(onset, duration)
         rows.append(dict(
             dataset_label=label, metadata_sequence=sequence,
@@ -57,6 +58,23 @@ def planned_rows() -> list[dict]:
             license="CC BY-NC 4.0 (dataset README)", dataset_url=DATASET,
         ))
     return rows
+
+
+def catalog_selection():
+    """Read the saved upstream metadata snapshot; preserve initial five filenames."""
+    aliases = {entry[2]: entry[0] for entry in SELECTION}
+    with (ROOT / "dataset_sequences.csv").open(newline="", encoding="utf-8-sig") as handle:
+        catalog = list(csv.DictReader(handle))
+    selection = []
+    for row in catalog:
+        video_id = parse_qs(urlparse(row["video_url"]).query)["v"][0]
+        if float(row["fps"]) != 1:
+            raise ValueError("Catalog FPS changed; review onset conversion before downloading")
+        selection.append((aliases.get(video_id, row["sequence"]), row["sequence"],
+                          video_id, int(row["onset_frame"]), int(row["n_frames"])))
+    if len({entry[2] for entry in selection}) != len(selection):
+        raise ValueError("Duplicate video IDs in catalog")
+    return selection
 
 
 def write_manifest(rows: list[dict], path: Path = MANIFEST) -> None:
@@ -142,15 +160,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", action="store_true", help="Write planned CSV without network or dependencies")
     parser.add_argument("--overwrite", action="store_true", help="Replace existing clips after verifying replacements")
+    parser.add_argument("--all", action="store_true", help="Process all entries in dataset_sequences.csv")
     args = parser.parse_args()
-    rows = planned_rows()
+    rows = planned_rows(catalog_selection()) if args.all else planned_rows()
+    retained = {}
+    if MANIFEST.exists():
+        with MANIFEST.open(newline="", encoding="utf-8-sig") as handle:
+            retained = {row["source_url"]: row for row in csv.DictReader(handle)}
+    def persist():
+        merged = dict(retained)
+        merged.update({row["source_url"]: row for row in rows})
+        write_manifest(list(merged.values()))
     OUTPUT.mkdir(exist_ok=True)
     if args.plan:
-        if MANIFEST.exists():
-            print(f"Manifest already exists; leaving it unchanged: {MANIFEST}")
-        else:
-            write_manifest(rows)
-            print(f"Wrote five planned clips to {MANIFEST}")
+        for row in rows:
+            retained.setdefault(row["source_url"], row)
+        write_manifest(list(retained.values()))
+        print(f"Manifest includes {len(retained)} clips: {MANIFEST}")
         return 0
     missing = [name for name in ("ffmpeg", "ffprobe") if not shutil.which(name)]
     if importlib.util.find_spec("yt_dlp") is None:
@@ -158,8 +184,9 @@ def main() -> int:
     if missing:
         for row in rows:
             row.update(status="blocked_dependencies", error="Missing: " + ", ".join(missing))
-        if not MANIFEST.exists():
-            write_manifest(rows)
+        for row in rows:
+            retained.setdefault(row["source_url"], row)
+        write_manifest(list(retained.values()))
         print("Missing dependencies: " + ", ".join(missing), file=sys.stderr)
         print("Install FFmpeg and FFprobe on PATH. See vision/TEST_VIDEOS.md.", file=sys.stderr)
         return 2
@@ -174,12 +201,12 @@ def main() -> int:
             print(f"FAILED {row['dataset_label']}: {error}", file=sys.stderr)
         except KeyboardInterrupt:
             row.update(status="interrupted", error="Interrupted by user")
-            write_manifest(rows)
+            persist()
             return 130
-        write_manifest(rows)
+        persist()
     successes = sum(r["status"] in ("downloaded_verified", "verified_existing") for r in rows)
-    print(f"Verified {successes}/5 clips. Manifest: {MANIFEST}")
-    return 0 if successes == 5 else 1
+    print(f"Verified {successes}/{len(rows)} clips. Manifest: {MANIFEST}")
+    return 0 if successes == len(rows) else 1
 
 
 if __name__ == "__main__":
