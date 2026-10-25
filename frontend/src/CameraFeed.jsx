@@ -12,8 +12,7 @@ export default function CameraFeed() {
   }, [error]);
   return <>
     <div className="panel-header"><h2><Camera size={18} /> Live View</h2>
-      <div className="controls"><span className="tag">{error ? 'RECONNECTING' : 'LIVE STREAM'}</span>
-        <button type="button" className="secondary-btn" aria-label="Refresh live view"
+      <div className="controls"><button type="button" className="secondary-btn" aria-label="Refresh live view"
           onClick={() => { setError(false); setAttempt(value => value + 1); }}>
           <RefreshCw size={15} /> Refresh</button></div></div>
     {!error ? <img key={attempt} className="camera-image" src={`${API}/camera/stream?attempt=${attempt}`}

@@ -206,6 +206,8 @@ The progress card emphasizes time remaining, omitting zero hours (for example,
 File icons sit on the left of each row, with red trash icons inside the right edge.
 The Live View Refresh button immediately replaces the stream connection. Normal
 temperature history omits its source badge; unavailable/demo states remain labeled.
+Live View's header contains just the title and Refresh control; the live-stream
+badge is omitted.
 Progress, elapsed time and remaining-time estimate share one card. The event log
 has one internal scrollbar; a new event returns it to the newest entry at the top.
 SQLite `print_actions` records manual pause/cancel requests with file, UTC timestamp,
@@ -277,3 +279,28 @@ intermittent endstop/travel failure has been reported. Do not enable parking jus
 to test whether an unsafe machine will collide again.
 
 Reference: https://docs.octoprint.org/en/main/features/gcode_scripts.html
+
+## Where to see and test detections
+
+Fresh readings appear in Failure Signal and the confidence below Live View. A
+sustained high-confidence failure while armed and printing produces a Print issue
+detected banner with resume/cancel controls, a Printer event log message, and an
+automatic pause row in Print issue history. The raw Live View does not draw model
+boxes; inference and publication run separately. Unavailable/WAITING indicates no
+fresh publisher results, not a healthy-print assessment.
+
+For real camera recognition, install/download the vision components once, then
+run the publisher from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r vision/requirements.txt
+.\.venv\Scripts\python.exe vision/src/download_model.py
+.\.venv\Scripts\python.exe -m vision.src.pi_inference --snapshot-url "http://<pi-address>/webcam/?action=snapshot" --backend-url http://127.0.0.1:8000 --headless
+```
+
+Wait for fresh confidence values, then arm monitoring for a supervised print.
+The threshold is confidence >=70 sustained for at least five seconds across fresh
+samples. The publisher never arms monitoring itself. Do not change bed leveling
+or force collisions to demonstrate failure. To test only response/logging, use a
+separate mock backend and isolated database; synthetic results do not validate
+the vision model. Never inject synthetic results into the live printer backend.
