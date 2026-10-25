@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, RefreshCw } from 'lucide-react';
 import { API } from './api';
 
 export default function CameraFeed() {
@@ -12,7 +12,10 @@ export default function CameraFeed() {
   }, [error]);
   return <>
     <div className="panel-header"><h2><Camera size={18} /> Live View</h2>
-      <span className="tag">{error ? 'RECONNECTING' : 'LIVE STREAM'}</span></div>
+      <div className="controls"><span className="tag">{error ? 'RECONNECTING' : 'LIVE STREAM'}</span>
+        <button type="button" className="secondary-btn" aria-label="Refresh live view"
+          onClick={() => { setError(false); setAttempt(value => value + 1); }}>
+          <RefreshCw size={15} /> Refresh</button></div></div>
     {!error ? <img key={attempt} className="camera-image" src={`${API}/camera/stream?attempt=${attempt}`}
       alt="Live printer camera stream" onError={() => setError(true)} /> :
       <div className="camera-placeholder" role="status"><Camera size={55} />

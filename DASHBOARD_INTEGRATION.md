@@ -202,8 +202,10 @@ References:
 ## Dashboard refinements and action history
 
 The progress card emphasizes time remaining, omitting zero hours (for example,
-`27m`). Completion percentage sits beside elapsed time below the progress bar.
+`27 minutes remaining`). Completion percentage sits beside elapsed time below the progress bar.
 File icons sit on the left of each row, with red trash icons inside the right edge.
+The Live View Refresh button immediately replaces the stream connection. Normal
+temperature history omits its source badge; unavailable/demo states remain labeled.
 Progress, elapsed time and remaining-time estimate share one card. The event log
 has one internal scrollbar; a new event returns it to the newest entry at the top.
 SQLite `print_actions` records manual pause/cancel requests with file, UTC timestamp,

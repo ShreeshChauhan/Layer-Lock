@@ -10,7 +10,7 @@ const series = [
 export default function TemperatureChart({ history = [], simulated, unavailable }) {
   return <section className="panel chart-panel">
     <div className="panel-header"><h2><Thermometer size={18} /> Temperature history</h2>
-      <span className="tag">{unavailable ? 'TELEMETRY UNAVAILABLE' : simulated ? 'DEMO TELEMETRY' : 'OCTOPRINT TELEMETRY'}</span></div>
+      {(unavailable || simulated) && <span className="tag">{unavailable ? 'TELEMETRY UNAVAILABLE' : 'DEMO TELEMETRY'}</span>}</div>
     <div className="chart-container">
       {history.length ? <ResponsiveContainer width="100%" height="100%">
         <LineChart data={history} margin={{ right: 15, top: 10, bottom: 15 }}>

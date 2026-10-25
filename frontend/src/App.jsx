@@ -12,7 +12,11 @@ import { stateClass } from './printerState';
 function duration(seconds) {
   if (seconds == null) return '—';
   const minutes = Math.floor(Math.max(0, seconds) / 60);
-  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  const hours = Math.floor(minutes / 60);
+  const parts = [];
+  if (hours) parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+  if (minutes % 60 || !hours) parts.push(`${minutes % 60} ${minutes % 60 === 1 ? 'minute' : 'minutes'}`);
+  return parts.join(' ');
 }
 function date(value) { return value ? new Date(value).toLocaleString() : '—'; }
 
@@ -111,7 +115,7 @@ export default function App() {
           {printer?.connected ? 'Connected' : printer?.can_connect ? 'Connect printer' : 'Waiting for connection'}</button>
       </article>
       <article className="panel stat"><div className="stat-label"><Activity /> PRINT PROGRESS</div>
-        <div className="stat-value">{duration(validTelemetry ? printer.print_time_left : null)}</div>
+        <div className="stat-value">{duration(validTelemetry ? printer.print_time_left : null)}{validTelemetry && printer.print_time_left != null ? ' remaining' : ''}</div>
         <div className="progress-track"><div style={{ width: `${Math.max(0, Math.min(100, progress || 0))}%` }} /></div>
         <div className="stat-footer print-timing"><span>Elapsed: {duration(validTelemetry ? printer.print_time : null)}</span>
           <span>{progress == null ? '—' : `${progress.toFixed(1)}%`} done</span></div></article>
