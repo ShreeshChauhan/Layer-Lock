@@ -1,7 +1,7 @@
 """Ensure conservative hook scripts and sample footers cannot introduce travel."""
 import unittest
 from pathlib import Path
-from configure_motion_scripts import ROOT, NAMES, can_configure
+from tools.configure_motion_scripts import ROOT, NAMES, can_configure
 
 
 class MotionScriptTests(unittest.TestCase):

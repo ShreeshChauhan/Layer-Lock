@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from risk_engine import RiskEngine
+from backend.risk_engine import RiskEngine
 
 
 class TestRiskEngine(unittest.TestCase):
@@ -60,7 +60,7 @@ class TestRiskEngine(unittest.TestCase):
     def test_camera_failure_requires_five_seconds(self):
         self.engine.arm()
 
-        with patch("risk_engine.time.monotonic") as mock_time:
+        with patch("backend.risk_engine.time.monotonic") as mock_time:
             mock_time.return_value = 100.0
 
             _, first_pause = self.engine.process(
@@ -91,7 +91,7 @@ class TestRiskEngine(unittest.TestCase):
     def test_camera_risk_must_be_continuous(self):
         self.engine.arm()
 
-        with patch("risk_engine.time.monotonic") as mock_time:
+        with patch("backend.risk_engine.time.monotonic") as mock_time:
             mock_time.return_value = 100.0
             _, first = self.engine.process(95, False)
 

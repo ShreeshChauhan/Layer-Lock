@@ -1,16 +1,36 @@
-# React + Vite
+# LayerLock dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React and Vite interface for camera monitoring, printer control, temperature history, and incident review. Recharts renders telemetry and Lucide provides interface icons.
 
-Currently, two official plugins are available:
+## Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Install root Python dependencies and model weights using the [project setup guide](../README.md#run-layerlock), then run from this directory:
 
-## React Compiler
+```powershell
+npm.cmd ci
+npm.cmd run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The development server starts the FastAPI backend when absent and proxies `/api` to it. An existing healthy backend is reused. Configuration is in `vite.config.js`; process management is in `dev-backend.mjs`.
 
-## Expanding the ESLint configuration
+## Source layout
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `src/App.jsx`: dashboard layout and shared command handling.
+- `src/PrinterControls.jsx`: file management and printer actions.
+- `src/CameraFeed.jsx`: continuous MJPEG video and reconnection.
+- `src/RecoveryPanel.jsx`: detected-issue review and recovery.
+- `src/TemperatureChart.jsx` and `src/RiskDial.jsx`: telemetry displays.
+- `src/useDashboard.js` and `src/api.js`: polling, requests, and API configuration.
+- `public/`: active branding assets.
+
+Use npm with the committed `package-lock.json` for reproducible dependencies.
+
+## Checks
+
+```powershell
+node --test dev-backend.test.mjs
+npm.cmd run lint
+npm.cmd run build
+```
+
+Production builds are written to ignored `dist/`. Deployment requires an API reverse proxy and appropriate access controls; see the [integration guide](../docs/INTEGRATION.md).

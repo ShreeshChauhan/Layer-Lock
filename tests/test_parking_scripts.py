@@ -3,7 +3,7 @@ import math
 import unittest
 
 from jinja2 import Environment, StrictUndefined
-from parking_scripts import build_parking_scripts
+from backend.parking_scripts import build_parking_scripts
 
 
 class ParkingTests(unittest.TestCase):

@@ -2,8 +2,7 @@
 
 Install `requirements.txt` for the backend and `vision/requirements.txt` for vision.
 Keep the existing weights in `vision/models/layerlock.pt`; for a fresh checkout,
-run `python vision/src/download_model.py` first. The detector and video/ROI
-evaluators are unchanged by this integration.
+run `python vision/src/download_model.py` first. The dashboard can launch the publisher with Enable vision after dependencies and weights are installed.
 
 Run from the repository root, using the project's Python environment:
 
@@ -36,7 +35,7 @@ that range and defaults `filament_runout` to false. The formatter's `failure_typ
 and `timestamp` fields are currently ignored by the backend; freshness is based
 on server receipt time. The publisher does not manufacture runout readings.
 
-An operator must select **live mode** in the dashboard. While the backend remains
+Real printer configuration starts in **live mode**. Mock printer operation can select Live vision source in the dashboard. While the backend remains
 in simulation mode, updates receive HTTP 409; the publisher reports this and
 continues sampling. Successful readings refresh the dashboard even while
 monitoring is disarmed. Missing/stale readings prevent live arming; the current
@@ -44,9 +43,7 @@ backend freshness threshold is 10 seconds. Keep successful sampling plus inferen
 and network time below that threshold.
 
 This program never switches mode, arms monitoring, or calls printer-control
-endpoints. No new automatic-pause behavior is enabled. **If an operator manually
-arms monitoring, the existing backend `/live/update` handler can trigger a pause
-under its existing risk rules.** Keep monitoring disarmed and the backend in mock
+endpoints. The backend applies the configured automatic-pause rules only when monitoring is armed and a print is active. Keep monitoring disarmed and the backend in mock
 printer mode while validating the publisher. This publisher is not an isolation
 boundary against an already-armed backend.
 
@@ -59,7 +56,7 @@ Network and camera URLs must be reachable from the machine running this script.
 
 ```powershell
 python -m unittest discover -s vision/tests -p "test_*.py" -v
-python -m unittest test_api test_risk -v
+python -m unittest discover -s tests -t . -v
 ```
 
 The backend contract test requires the root backend dependencies. Tests use mocked

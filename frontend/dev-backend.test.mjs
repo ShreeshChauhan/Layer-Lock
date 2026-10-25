@@ -19,7 +19,7 @@ async function options(t) {
     const http = require('node:http');
     setTimeout(() => http.createServer((req, res) => {
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(req.url === '/health' ? {status: 'healthy'} : {info: {title: 'Print Guardian API'}}));
+      res.end(JSON.stringify(req.url === '/health' ? {status: 'healthy'} : {info: {title: 'LayerLock API'}}));
     }).listen(${port}, '127.0.0.1'), 300);
   `;
   return { url: `http://127.0.0.1:${port}`, command: process.execPath,

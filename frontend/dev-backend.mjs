@@ -18,7 +18,7 @@ async function isBackendReady(url) {
   const health = await response.json().catch(() => null);
   const schema = await fetch(`${url}/openapi.json`, { signal: AbortSignal.timeout(1500) });
   const api = await schema.json().catch(() => null);
-  if (!response.ok || health?.status !== 'healthy' || !schema.ok || api?.info?.title !== 'Print Guardian API') {
+  if (!response.ok || health?.status !== 'healthy' || !schema.ok || !['LayerLock API', 'Print Guardian API'].includes(api?.info?.title)) {
     throw new Error(`Port ${new URL(url).port} is occupied by an unhealthy or different service. No process was stopped.`);
   }
   return true;
@@ -27,7 +27,7 @@ async function isBackendReady(url) {
 // Exported separately so lifecycle tests can use a harmless HTTP fixture, never a printer.
 export async function ensureBackend({
   url = 'http://127.0.0.1:8000', command = python,
-  args = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000', '--no-access-log'],
+  args = ['-m', 'uvicorn', 'backend.main:app', '--host', '127.0.0.1', '--port', '8000', '--no-access-log'],
   cwd = root, logDirectory = root, timeoutMs = 30000,
 } = {}) {
   if (await isBackendReady(url)) return { owned: false, stop() {} };

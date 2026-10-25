@@ -4,7 +4,7 @@ import io
 from unittest.mock import patch
 
 import httpx
-import printer as adapter
+from backend import printer as adapter
 
 
 class OctoPrintTests(unittest.IsolatedAsyncioTestCase):

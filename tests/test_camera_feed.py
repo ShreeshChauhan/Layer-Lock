@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
 
-import camera_feed
+from backend import camera_feed
 
 
 class CameraFeedTests(unittest.TestCase):

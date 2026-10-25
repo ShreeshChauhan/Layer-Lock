@@ -9,14 +9,14 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-import incident_db
-import main as backend
+from backend import incident_db
+from backend import main as backend
 from vision.src import pi_inference as pi
 
 
 class PiBackendTests(unittest.TestCase):
     def setUp(self):
-        printer_mode = patch('printer.PRINTER_TYPE', 'mock')
+        printer_mode = patch('backend.printer.PRINTER_TYPE', 'mock')
         printer_mode.start()
         self.addCleanup(printer_mode.stop)
         backend.printer.mock_paused = False

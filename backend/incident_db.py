@@ -5,7 +5,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path(os.getenv('INCIDENT_DB_PATH', str(Path(__file__).resolve().parent / 'print_guardian.db')))
+DB_PATH = Path(os.getenv('INCIDENT_DB_PATH', str(Path(__file__).resolve().parents[1] / 'print_guardian.db')))
 
 
 def connect():

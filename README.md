@@ -119,15 +119,19 @@ The dashboard starts with automatic pauses disarmed. Enable vision and follow th
 
 | Path | Purpose |
 |---|---|
+| `backend/` | FastAPI application, monitoring, printer integration, and persistence |
+| `tests/` | Backend and integration regression tests |
+| `tools/` | Explicit printer configuration utilities |
+| `docs/` | Setup, operation, and validation guides |
 | `frontend/` | Dashboard, live camera view, printer controls, charts, and history |
-| `main.py` | API routes, monitoring coordination, and recovery workflow |
-| `printer.py` | OctoPrint telemetry, file management, and printer commands |
-| `risk_engine.py` | Sustained-confidence threshold and monitoring state |
-| `vision_service.py` | Dashboard-controlled vision worker lifecycle |
+| `backend/main.py` | API routes, monitoring coordination, and recovery workflow |
+| `backend/printer.py` | OctoPrint telemetry, file management, and printer commands |
+| `backend/risk_engine.py` | Sustained-confidence threshold and monitoring state |
+| `backend/vision_service.py` | Dashboard-controlled vision worker lifecycle |
 | `vision/src/` | Camera capture, YOLO inference, and evaluation tools |
-| `telemetry.py` | Shared printer polling and temperature history |
-| `incident_db.py` | Persistent printer events, actions, and detected incidents |
-| `notification.py` | Discord notification integration |
+| `backend/telemetry.py` | Shared printer polling and temperature history |
+| `backend/incident_db.py` | Persistent printer events, actions, and detected incidents |
+| `backend/notification.py` | Discord notification integration |
 | `pi-module/` | Printer integration library, command-line tools, and G-code hooks |
 
 ## Scope and operation
@@ -140,8 +144,10 @@ Printer motion during pause, resume, cancellation, and completion follows the in
 
 ## Documentation and model attribution
 
-- [Dashboard and OctoPrint integration](DASHBOARD_INTEGRATION.md)
+- [Dashboard and OctoPrint integration](docs/INTEGRATION.md)
 - [Vision inference and camera connection](vision/docs/PI_INFERENCE.md)
+- [Testing and validation](docs/TESTING.md)
+- [Pi integration tools](pi-module/README.md)
 - [Dataset evaluation](vision/docs/DATASET_EVALUATION.md)
 - [Video evaluation](vision/docs/TEST_VIDEOS.md)
 - [Pretrained 3D print failure detection model](https://huggingface.co/ApatheticWithoutTheA/3D-Print-Failure-Detector), used through Ultralytics YOLO.

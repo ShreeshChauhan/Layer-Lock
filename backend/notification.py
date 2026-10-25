@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 
 import httpx
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / '.env')
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,9 @@ async def send_discord_alert(
         return False
 
     title = (
-        "PRINT GUARDIAN - TEST NOTIFICATION"
+        "LAYERLOCK - TEST NOTIFICATION"
         if is_test
-        else "PRINT GUARDIAN - FAILURE DETECTED"
+        else "LAYERLOCK - FAILURE DETECTED"
     )
 
     action = (
@@ -37,7 +38,7 @@ async def send_discord_alert(
     )
 
     payload = {
-        "username": "Print Guardian",
+        "username": "LayerLock",
         "embeds": [
             {
                 "title": title,
@@ -70,7 +71,7 @@ async def send_discord_alert(
                     }
                 ],
                 "footer": {
-                    "text": "Print Guardian Monitoring System"
+                    "text": "LayerLock Monitoring System"
                 },
                 "timestamp": datetime.now(
                     timezone.utc

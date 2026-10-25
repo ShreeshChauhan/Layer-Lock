@@ -14,7 +14,7 @@ from dotenv import dotenv_values
 
 router = APIRouter()
 MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024
-CONFIG_FILE = Path(__file__).resolve().parent / '.env'
+CONFIG_FILE = Path(__file__).resolve().parents[1] / '.env'
 
 
 @router.get('/camera/stream')

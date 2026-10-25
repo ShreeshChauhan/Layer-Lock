@@ -1,6 +1,6 @@
-# Layer-Lock: `pi-module` (hardware layer)
+# LayerLock Pi integration
 
-The hardware library for Print Guardian, using OctoPrint on a Raspberry Pi. It exposes printer commands, camera snapshots, and component health checks. It is not yet wired into the backend's printer adapter or an automatic stop loop.
+Standalone printer commands, camera snapshots, and health checks for OctoPrint on a Raspberry Pi. The web application uses the asynchronous adapter in `backend/printer.py`; this synchronous library supports direct command-line operation.
 
 Design rule: every request has a timeout and every failure raises an exception, so problems become alerts instead of failing silently.
 
@@ -43,8 +43,6 @@ Remove-Item Env:MOCK
 
 Always run tools as modules (`python -m tools.<name>`) from `pi-module`, or the imports will fail.
 
-The empty `printer_test.py` and `record_frames.py` placeholders were removed; neither feature was implemented. Automated tests below use mocks, not printer commands.
-
 ## Configuration (`.env`)
 
 Lives in `pi-module/`, is gitignored, and holds the API key, so never commit or paste it. The settings you'll actually touch:
@@ -68,7 +66,7 @@ OctoPrint runs these itself on pause, resume, and cancel, whether the command co
 
 The tracked `gcode_scripts/` hooks now use stationary pause/resume and heater/fan
 shutdown on cancel/completion. They deliberately contain no park, lift, retract,
-home, or motor-release commands. See root `DASHBOARD_INTEGRATION.md` for installation,
+home, or motor-release commands. See the [integration guide](../docs/INTEGRATION.md) for installation,
 backups, existing uploaded-file limitations, and required physical-limit checks.
 
 ## Troubleshooting
@@ -86,15 +84,14 @@ backups, existing uploaded-file limitations, and required physical-limit checks.
 
 - Never paste the API key into chat or commit it. Regenerate it in OctoPrint (Settings, API) if it has been exposed.
 - Never port-forward the camera stream (port 8080); it has no authentication. Share it over the same network, a hotspot, or Tailscale.
-- Local stop orchestration remains integration work; this library alone does not guarantee a stop during a network outage.
+- Automatic pause coordination runs in the web backend; this command-line library alone does not provide failure monitoring.
 
 ## Health and API boundaries
 
 Printer health requires a recognized healthy connection state and operational flags without an error. A connected `Error`, `Unknown`, or transitional connection state is not healthy. Invalid JSON, malformed nested objects, invalid flags, and invalid numeric readings raise `PrinterError`; health checks report OctoPrint `error` and printer `unknown`. Missing Pi telemetry remains `unknown` and is excluded from the aggregate health decision, so laptop mock checks can run.
 
-The backend still uses root `printer.py`: asynchronous `pause()` / `get_status()`, `PRINTER_TYPE`, `OCTOPRINT_URL`, and `OCTOPRINT_API_KEY`. This library uses synchronous `pause_printer()` / `get_printer_state()`, `MOCK`, `OCTO_URL`, and `OCTO_KEY`. These are separate adapters and settings; no automatic bridge or health-to-backend endpoint is implemented. Hardware frames are RGB; convert to BGR before passing to the existing OpenCV YOLO detector. The Pi vision publisher remains independent and submits camera confidence to `/live/update`; it never arms monitoring.
+The backend still uses `backend/printer.py`: asynchronous `pause()` / `get_status()`, `PRINTER_TYPE`, `OCTOPRINT_URL`, and `OCTOPRINT_API_KEY`. This library uses synchronous `pause_printer()` / `get_printer_state()`, `MOCK`, `OCTO_URL`, and `OCTO_KEY`. These are separate adapters and settings; no automatic bridge or health-to-backend endpoint is implemented. Hardware frames are RGB; convert to BGR before passing to the existing OpenCV YOLO detector. The Pi vision publisher remains independent and submits camera confidence to `/live/update`; it never arms monitoring.
 
-For this PR, `origin/main` still has no vision tree. Vision files are preserved exactly from `feature/vision` commit `d3628e5`, including `--conf` and the Pi publisher fixes, rather than reverting to this branch's older snapshot.
 
 ## Automated validation
 
@@ -106,8 +103,7 @@ $env:PRINTER_TYPE="mock"
 $env:MOCK="1"
 python -m unittest discover -s pi-module/tests -v
 python -m unittest discover -s vision/tests -v
-python -m unittest test_api test_risk -v
-python demo_check.py
+python -m unittest discover -s tests -t . -v
 ```
 
 Tests replace HTTP transports and printer/notification actions with mocks. Physical camera connectivity, device telemetry, and OctoPrint-version compatibility still require deployment validation.

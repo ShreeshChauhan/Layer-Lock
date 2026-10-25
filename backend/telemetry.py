@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from collections import deque
 
-from incident_db import save_event, save_print_action
+from backend.incident_db import save_event, save_print_action
 
 
 class PrinterMonitor:
@@ -67,6 +67,6 @@ class PrinterMonitor:
                     self.event('Printer telemetry unavailable')
                     self.history.append({'timestamp': datetime.now(timezone.utc).isoformat(),
                         **{f'{name}_{key}': None for name in ('tool0', 'bed') for key in ('actual', 'target')}})
-                self.error = str(error)
+                self.error = str(error) or 'Unable to reach the printer. Check the Raspberry Pi connection and OctoPrint address.'
             self.last_sample = time.monotonic()
             return self.status

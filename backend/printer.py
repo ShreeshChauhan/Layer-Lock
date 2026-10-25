@@ -11,7 +11,7 @@ from urllib.parse import quote
 import httpx
 from dotenv import dotenv_values
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 SETTINGS = {**dotenv_values(ROOT / 'pi-module' / '.env'), **dotenv_values(ROOT / '.env'), **os.environ}
 PRINTER_TYPE = SETTINGS.get('PRINTER_TYPE', 'mock').lower()
 OCTOPRINT_URL = SETTINGS.get('OCTOPRINT_URL', SETTINGS.get('OCTO_URL', 'http://127.0.0.1:5000')).rstrip('/')

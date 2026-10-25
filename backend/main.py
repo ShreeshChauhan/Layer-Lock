@@ -11,13 +11,13 @@ from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from notification import send_discord_alert
-from printer import printer, CommandBlocked, validate_upload_name
-from telemetry import PrinterMonitor
-from risk_engine import risk_engine
-from camera_feed import router as camera_router
-from vision_service import vision_service
-from incident_db import (
+from backend.notification import send_discord_alert
+from backend.printer import printer, CommandBlocked, validate_upload_name
+from backend.telemetry import PrinterMonitor
+from backend.risk_engine import risk_engine
+from backend.camera_feed import router as camera_router
+from backend.vision_service import vision_service
+from backend.incident_db import (
     get_incidents, get_print_history, save_print_action,
     get_incident_stats,
     save_incident, update_notification, resolve_incident, open_incident, get_events
@@ -53,7 +53,7 @@ async def lifespan(app):
 
 
 app = FastAPI(
-    title="Print Guardian API",
+    title="LayerLock API",
     version="0.7.0", lifespan=lifespan
 )
 

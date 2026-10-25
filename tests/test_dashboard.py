@@ -5,18 +5,18 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 from fastapi.testclient import TestClient
-import incident_db
-import main
-from telemetry import PrinterMonitor
-import test_api as api_tests
+from backend import incident_db
+from backend import main
+from backend.telemetry import PrinterMonitor
+from tests import test_api as api_tests
 
 
 class DashboardTests(unittest.TestCase):
-    tearDown = api_tests.TestPrintGuardianAPI.tearDown
-    post_reading = api_tests.TestPrintGuardianAPI.post_reading
+    tearDown = api_tests.TestLayerLockAPI.tearDown
+    post_reading = api_tests.TestLayerLockAPI.post_reading
 
     def setUp(self):
-        api_tests.TestPrintGuardianAPI.setUp(self)
+        api_tests.TestLayerLockAPI.setUp(self)
         main.printer.mock_idle = False
         files_patch = patch.object(main.printer, 'mock_files', {
             'mock_part.gcode': {'name': 'mock_part.gcode', 'path': 'mock_part.gcode', 'size': 1234, 'date': 0}})
@@ -34,6 +34,21 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(first['printer']['temperatures']['bed']['target'], 60)
         self.assertEqual(len(first['temperature_history']), 1)
         self.assertEqual(first['events'], second['events'])
+
+    def test_empty_timeout_message_is_visible_and_does_not_repeat_events(self):
+        with patch.object(main.printer, 'get_status', new_callable=AsyncMock,
+                          side_effect=httpx.ConnectTimeout('')):
+            first = self.client.get('/dashboard').json()
+            main.monitor.last_sample = 0
+            second = self.client.get('/dashboard').json()
+        self.assertIn('Unable to reach the printer', first['printer_error'])
+        self.assertEqual(first['printer_error'], second['printer_error'])
+        failures = [event for event in second['events'] if event['message'] == 'Printer telemetry unavailable']
+        self.assertEqual(len(failures), 1)
+        main.monitor.last_sample = 0
+        restored = self.client.get('/dashboard').json()
+        self.assertIsNone(restored['printer_error'])
+        self.assertTrue(any(event['message'] == 'Printer telemetry connection restored' for event in restored['events']))
 
     def test_connect_endpoint_records_request_and_acceptance(self):
         with patch.object(main.printer, 'connect', new_callable=AsyncMock,
@@ -60,7 +75,7 @@ class DashboardTests(unittest.TestCase):
     def test_vision_missing_dependencies_reports_failure_without_spawning(self):
         self.client.post('/mode/live')
         with patch.object(main.vision_service, 'prerequisites', return_value='Model weights are missing'), \
-                patch('vision_service.asyncio.create_subprocess_exec') as spawn:
+                patch('backend.vision_service.asyncio.create_subprocess_exec') as spawn:
             result = self.client.post('/vision/enable')
             self.assertEqual(result.status_code, 503)
             self.assertIn('Model weights', result.json()['detail'])
@@ -175,7 +190,7 @@ class DashboardTests(unittest.TestCase):
         self.assertTrue(any('Start command accepted' in row['message'] for row in incident_db.get_events()))
 
     def test_simulation_cannot_act_on_real_printer(self):
-        with patch('printer.PRINTER_TYPE', 'octoprint'), patch.object(main.printer, 'pause', new_callable=AsyncMock) as pause:
+        with patch('backend.printer.PRINTER_TYPE', 'octoprint'), patch.object(main.printer, 'pause', new_callable=AsyncMock) as pause:
             self.assertEqual(self.post_reading(runout=True).status_code, 409)
             pause.assert_not_awaited()
 

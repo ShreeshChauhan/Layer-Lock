@@ -8,9 +8,9 @@ import sys
 import time
 from urllib.parse import urlsplit
 
-from printer import SETTINGS
+from backend.printer import SETTINGS
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class VisionService:

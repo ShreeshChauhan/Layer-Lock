@@ -6,14 +6,14 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-import main
-import incident_db
-from vision_service import VisionService
-from printer import printer
-from risk_engine import risk_engine
+from backend import main
+from backend import incident_db
+from backend.vision_service import VisionService
+from backend.printer import printer
+from backend.risk_engine import risk_engine
 
 
-class TestPrintGuardianAPI(unittest.TestCase):
+class TestLayerLockAPI(unittest.TestCase):
 
     def setUp(self):
         # Create an isolated database for each test.
@@ -38,7 +38,7 @@ class TestPrintGuardianAPI(unittest.TestCase):
 
         # Force mock printer mode.
         self.printer_type_patch = patch(
-            "printer.PRINTER_TYPE",
+            "backend.printer.PRINTER_TYPE",
             "mock"
         )
         self.printer_type_patch.start()
@@ -185,7 +185,7 @@ class TestPrintGuardianAPI(unittest.TestCase):
         self.client.post("/risk/arm")
 
         with patch(
-            "risk_engine.time.monotonic"
+            "backend.risk_engine.time.monotonic"
         ) as mock_clock:
 
             mock_clock.return_value = 100.0

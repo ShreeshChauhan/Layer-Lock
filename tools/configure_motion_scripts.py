@@ -9,10 +9,10 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from printer import printer, PRINTER_TYPE
-from parking_scripts import build_parking_scripts
+from backend.printer import printer, PRINTER_TYPE
+from backend.parking_scripts import build_parking_scripts
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 NAMES = ('afterPrintPaused', 'beforePrintResumed', 'afterPrintCancelled', 'afterPrintDone')
 
 
