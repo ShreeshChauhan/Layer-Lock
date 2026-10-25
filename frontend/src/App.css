@@ -211,5 +211,10 @@ th { color: var(--muted); }
 .homing-note { font-size: 11px; line-height: 1.6; }
 .vision-control { margin: 12px 0; }
 .vision-control .tag { margin-left: 10px; }
+.automatic-pause-control { flex: 0 1 390px; border-left: 1px solid var(--line); padding-left: 20px; }
+.automatic-pause-control .arm-button { width: 100%; }
+@media (max-width: 700px) {
+  .automatic-pause-control { flex-basis: auto; border-left: 0; border-top: 1px solid var(--line); padding: 18px 0 0; }
+}
 .delete-review { padding: 12px; border: 1px solid #87564b; margin: 10px 0; overflow-wrap: anywhere; }
 .delete-review button { margin: 4px; }

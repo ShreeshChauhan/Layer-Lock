@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CirclePower, Gauge, History, Plug, Printer, RefreshCw, Terminal } from 'lucide-react';
+import { Activity, CirclePower, Gauge, History, Plug, Printer, RefreshCw, ShieldCheck, Terminal } from 'lucide-react';
 import CameraFeed from './CameraFeed';
 import PrinterControls from './PrinterControls';
 import RecoveryPanel from './RecoveryPanel';
@@ -63,6 +63,13 @@ export default function App() {
   const validTelemetry = printer && !unavailable;
   const machineState = connectionError || data?.printer_error ? 'Unavailable' : printer?.state || 'Loading';
   const progress = validTelemetry ? printer.progress : null;
+  const armBlockedReason = !data || connectionError ? 'Waiting for the backend connection.'
+    : unavailable ? 'Connect the printer to enable automatic pauses.'
+    : risk?.paused ? 'Review the detected issue and resume or cancel the print first.'
+    : live && !vision?.enabled ? 'Enable vision detection first.'
+    : live && !freshSensor ? 'Waiting for fresh vision readings.'
+    : !printer?.printing && !printer?.paused ? 'Start a print to arm automatic pauses.'
+    : '';
   const eventList = useRef(null);
   const latestEvent = data?.events?.[0]?.id;
   useEffect(() => { if (eventList.current) eventList.current.scrollTop = 0; }, [latestEvent]);
@@ -86,10 +93,7 @@ export default function App() {
       <div className="header-brand"><img className="brand-logo" src="/brand/wolf-engine.svg" alt="LayerLock emblem" />
         <span>LAYER<span className="brand-accent">LOCK</span></span></div>
       <div className="eyebrow">3D PRINT MONITORING / {simulated ? 'MOCK PRINTER' : 'CONNECTED PRINTER'}</div>
-    </div><button className={`arm-button ${risk?.armed ? 'armed' : ''}`}
-      disabled={busy || !data || Boolean(connectionError) || (!risk?.armed && (unavailable || risk?.paused || (live && (!freshSensor || !vision?.enabled))))}
-      onClick={() => command(`/risk/${risk?.armed ? 'disarm' : 'arm'}`)}>
-      <CirclePower size={17} />{risk?.armed ? 'Monitoring armed' : 'Arm monitoring'}</button></header>
+    </div></header>
 
     {(error || connectionError || data?.printer_error) && <div className="error-banner" role="alert">{error || connectionError || data.printer_error}</div>}
     <section className="panel connection-panel">
@@ -104,7 +108,20 @@ export default function App() {
           <span className="tag">{vision?.state || 'WAITING'}</span>
           <p className="muted" role="status">{vision?.message || 'Waiting for vision status.'}</p>
         </div>}
-        <p className="muted">{risk?.armed ? 'Detected issues automatically pause the print and create an incident.' : 'Arm monitoring to enable automatic failure pauses.'}</p>
+      </div>
+      <div className="automatic-pause-control">
+        <h2><ShieldCheck size={18} /> Automatic pauses</h2>
+        <p className={risk?.armed ? 'green' : 'muted'} role="status">
+          {connectionError || !data ? 'Status unavailable' : risk?.armed ? 'Armed' : 'Disarmed'}</p>
+        <button type="button" className={`arm-button ${risk?.armed ? 'armed' : ''}`}
+          aria-pressed={Boolean(risk?.armed)} aria-describedby="automatic-pause-help"
+          disabled={busy || !data || Boolean(connectionError) || (!risk?.armed && Boolean(armBlockedReason))}
+          onClick={() => command(`/risk/${risk?.armed ? 'disarm' : 'arm'}`)}>
+          <ShieldCheck size={17} />{risk?.armed ? 'Disarm automatic pauses' : 'Arm automatic pauses'}</button>
+        <p id="automatic-pause-help" className="muted">{risk?.armed
+          ? 'Detected failures can pause the print automatically and are saved to print issue history. Disarming keeps vision detection running.'
+          : armBlockedReason || 'Arm to pause the print automatically when a failure is detected.'}</p>
+        <p className="muted">Starting a print here with fresh vision readings arms monitoring automatically. Disabling vision or losing fresh readings disarms it.</p>
       </div>
       {simulated && <div className="controls"><button className="secondary-btn" disabled={busy || !live || risk?.paused}
         onClick={() => command('/mode/simulation')}>Simulation source</button>
