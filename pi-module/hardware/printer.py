@@ -6,6 +6,7 @@ Rules for this module:
     treat it as an alert. Nothing fails silently.
 """
 import logging
+import math
 from pathlib import Path
 from urllib.parse import quote
 
@@ -14,6 +15,28 @@ import requests
 from . import config
 
 log = logging.getLogger(__name__)
+
+HEALTHY_STATES = {"operational", "printing", "paused", "pausing", "resuming",
+                  "starting", "finishing", "cancelling"}
+
+
+def _object(value, field):
+    if not isinstance(value, dict):
+        raise PrinterError(f"Malformed OctoPrint response: {field} must be an object")
+    return value
+
+
+def _json_object(response):
+    try:
+        return _object(response.json(), "response")
+    except ValueError as error:
+        raise PrinterError("Malformed OctoPrint response: invalid JSON") from error
+
+
+def _number(value, field):
+    if value is not None and (type(value) not in (int, float) or not math.isfinite(value)):
+        raise PrinterError(f"Malformed OctoPrint response: {field} must be a finite number or null")
+    return value
 
 
 class PrinterError(Exception):
@@ -50,6 +73,8 @@ def check_start_ready(state: dict) -> str | None:
     """Return a reason string if starting a print is unsafe, else None."""
     if not state.get("connected"):
         return "printer is not connected to OctoPrint"
+    if state.get("healthy") is False:
+        return "printer reports an unhealthy state"
     if state.get("printing") or state.get("paused"):
         return "a job is already running or paused"
     if str(state.get("state", "")).lower() != "operational":
@@ -139,18 +164,24 @@ class OctoPrinter:
     # -- starting prints ---------------------------------------------------
     def list_files(self) -> list[dict]:
         """G-code files stored on OctoPrint (recursive). Each has name, path, size, date."""
-        data = self._request("GET", "/api/files/local?recursive=true").json()
+        data = _json_object(self._request("GET", "/api/files/local?recursive=true"))
         out = []
 
         def walk(items):
+            if not isinstance(items, list):
+                raise PrinterError("Malformed OctoPrint response: files/children must be a list")
             for f in items:
+                _object(f, "file entry")
                 if f.get("type") == "folder":
-                    walk(f.get("children", []))
+                    walk(f.get("children"))
                 elif f.get("type") == "machinecode":
+                    if not all(isinstance(f.get(key), str) and f[key] for key in ("name", "path")):
+                        raise PrinterError("Malformed OctoPrint response: file name/path missing")
+                    _number(f.get("size"), "file size")
                     out.append({"name": f.get("name"), "path": f.get("path"),
                                 "size": f.get("size"), "date": f.get("date")})
 
-        walk(data.get("files", []))
+        walk(data.get("files"))
         return out
 
     def upload_file(self, local_path: str, remote_name: str | None = None) -> str:
@@ -164,7 +195,10 @@ class OctoPrinter:
         with p.open("rb") as fh:
             r = self._request("POST", "/api/files/local", files={"file": (name, fh)},
                               ok=(200, 201), timeout=getattr(config, "UPLOAD_TIMEOUT", 120))
-        path = r.json().get("files", {}).get("local", {}).get("path", name)
+        files = _object(_json_object(r).get("files"), "files")
+        path = _object(files.get("local"), "files.local").get("path")
+        if not isinstance(path, str) or not path:
+            raise PrinterError("Malformed OctoPrint response: uploaded file path missing")
         log.info("Printer: uploaded %s", path)
         return path
 
@@ -196,8 +230,10 @@ class OctoPrinter:
           connected, state, port, baudrate, printing, paused, progress_pct,
           file, temps {tool0|bed: {actual, target}}
         """
-        conn = self._request("GET", "/api/connection").json().get("current", {})
-        state = conn.get("state", "Unknown")
+        conn = _object(_json_object(self._request("GET", "/api/connection")).get("current"), "current")
+        state = conn.get("state")
+        if not isinstance(state, str) or not state.strip():
+            raise PrinterError("Malformed OctoPrint response: current.state must be a nonempty string")
         out = {
             "connected": not state.lower().startswith(("closed", "offline")),
             "state": state,
@@ -208,6 +244,7 @@ class OctoPrinter:
             "progress_pct": None,
             "file": None,
             "temps": {},
+            "healthy": False,
         }
         if not out["connected"]:
             return out
@@ -217,17 +254,33 @@ class OctoPrinter:
         if r.status_code == 409:
             out["connected"] = False
             return out
-        p = r.json()
-        flags = p.get("state", {}).get("flags", {})
-        out["printing"] = bool(flags.get("printing"))
-        out["paused"] = bool(flags.get("paused") or flags.get("pausing"))
-        for name, t in p.get("temperature", {}).items():
-            if isinstance(t, dict) and "actual" in t:
-                out["temps"][name] = {"actual": t.get("actual"), "target": t.get("target")}
+        p = _json_object(r)
+        flags = _object(_object(p.get("state"), "state").get("flags"), "state.flags")
+        for name in ("operational", "printing", "paused", "pausing", "error", "closedOrError"):
+            if name not in flags and name in ("pausing", "error", "closedOrError"):
+                continue
+            if type(flags.get(name)) is not bool:
+                raise PrinterError(f"Malformed OctoPrint response: flag {name} must be boolean")
+        out["printing"] = flags["printing"]
+        out["paused"] = flags["paused"] or flags.get("pausing", False)
+        out["healthy"] = (state.lower() in HEALTHY_STATES and flags["operational"]
+                          and not flags.get("error", False) and not flags.get("closedOrError", False))
+        for name, t in _object(p.get("temperature"), "temperature").items():
+            # OctoPrint may include a history array alongside tool/bed readings.
+            if name == "history":
+                continue
+            _object(t, f"temperature.{name}")
+            out["temps"][name] = {key: _number(t.get(key), f"{name}.{key}") for key in ("actual", "target")}
 
-        job = self._request("GET", "/api/job").json()
-        out["progress_pct"] = (job.get("progress") or {}).get("completion")
-        out["file"] = ((job.get("job") or {}).get("file") or {}).get("name")
+        job = _json_object(self._request("GET", "/api/job"))
+        progress = job.get("progress")
+        if progress is not None:
+            out["progress_pct"] = _number(_object(progress, "progress").get("completion"), "completion")
+        file = _object(job.get("job"), "job").get("file")
+        if file is not None:
+            out["file"] = _object(file, "job.file").get("name")
+            if out["file"] is not None and not isinstance(out["file"], str):
+                raise PrinterError("Malformed OctoPrint response: job.file.name must be a string or null")
         return out
 
     def is_hot(self, above_c: float = 50.0) -> bool:
@@ -277,7 +330,8 @@ class MockPrinter:
 
     def get_printer_state(self) -> dict:
         return {
-            "connected": True,
+            "connected": not self.state.lower().startswith(("closed", "offline")),
+            "healthy": self.state.lower() in HEALTHY_STATES,
             "state": self.state,
             "port": "mock",
             "baudrate": 0,
@@ -299,10 +353,18 @@ class MockPrinter:
         return remote_name or Path(local_path).name
 
     def start_print(self, remote_path, force=False):
+        if not force:
+            reason = check_start_ready(self.get_printer_state())
+            if reason:
+                raise PrintBlocked(f"start blocked: {reason}")
         log.warning("[mock] start %s", remote_path)
         self.state = "Printing"
 
     def print_file(self, local_path, force=False):
+        if not force:
+            reason = check_start_ready(self.get_printer_state())
+            if reason:
+                raise PrintBlocked(f"start blocked: {reason}")
         remote = self.upload_file(local_path)
         self.start_print(remote, force=force)
         return remote

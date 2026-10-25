@@ -4,7 +4,7 @@ Status values per component ("ok" is the only healthy one; "unknown" means we
 could not measure, e.g. running on a laptop):
   camera:    ok | error | stale | dark | blocked | frozen
   octoprint: ok | error
-  printer:   ok | disconnected | unknown
+  printer:   ok | unhealthy | disconnected | unknown
   pi_temp:   ok | warn | hot | throttled | unknown
 
 Usage in the vision loop:
@@ -27,7 +27,7 @@ from PIL import ImageChops, ImageStat
 
 from . import config
 from .camera import Frame
-from .printer import OctoPrintUnreachable, PrinterError
+from .printer import HEALTHY_STATES, OctoPrintUnreachable, PrinterError
 
 log = logging.getLogger(__name__)
 
@@ -129,6 +129,8 @@ class HealthMonitor:
             return "error", "unknown", str(e), None
         if not s["connected"]:
             return "ok", "disconnected", f"printer link state: {s['state']}", s
+        if s["state"].lower() not in HEALTHY_STATES or not s.get("healthy", True):
+            return "ok", "unhealthy", f"printer state: {s['state']}", s
         return "ok", "ok", f"state: {s['state']}", s
 
     def check_all(self, frame: Frame | None = None, camera_error: Exception | None = None) -> dict:

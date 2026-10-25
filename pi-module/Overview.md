@@ -1,6 +1,6 @@
 # Layer-Lock: `pi-module` (hardware layer)
 
-The hardware layer for Print Guardian: camera-only failure detection for an Ultimaker 2+ running OctoPrint on a Raspberry Pi. It controls the printer, fetches camera frames, and reports the health of every component. The stop decision runs locally on the Pi; the cloud is only for viewing and alerts.
+The hardware library for Print Guardian, using OctoPrint on a Raspberry Pi. It exposes printer commands, camera snapshots, and component health checks. It is not yet wired into the backend's printer adapter or an automatic stop loop.
 
 Design rule: every request has a timeout and every failure raises an exception, so problems become alerts instead of failing silently.
 
@@ -9,8 +9,8 @@ Design rule: every request has a timeout and every failure raises an exception, 
 Run everything from the `pi-module` folder:
 
 ```powershell
-pip install requests pillow python-dotenv
-copy .env.example .env            # then fill in OCTO_KEY
+pip install -r ../requirements.txt
+copy .env.example .env            # defaults to MOCK=1; fill in OCTO_KEY and set MOCK=0 for hardware
 python -m tools.hardware_check    # confirms OctoPrint, camera, and printer all respond
 ```
 
@@ -39,11 +39,11 @@ Remove-Item Env:MOCK
 | Script | Role | How to run |
 |---|---|---|
 | `hardware_check.py` | First thing to run when something seems wrong. Fetches a frame (saved to `data/test_frame.jpg`) and prints a health report. Optional flags send a command first, then re-check. | `python -m tools.hardware_check` (flags: `--pause`, `--resume`, `--cancel`, `--heaters-off`) |
-| `printer_test.py` | Exercises pause, resume, cancel, and heaters-off on the real printer. **Moves the printer**, so only run it with a print in progress and your hand near the controls. | `python -m tools.printer_test` |
-| `record_frames.py` | Saves camera frames to disk as training data. Run it during every print, with a separate folder per print. | `python -m tools.record_frames` |
 | `start_print.py` | Starts a print without the OctoPrint dashboard. Asks "Is the bed clear?" first. Needs sliced G-code for the Ultimaker 2+, not an STL. | `python -m tools.start_print --list`<br>`python -m tools.start_print C:\path\part.gcode`<br>`python -m tools.start_print --remote part.gcode` (add `--yes` to skip the prompt) |
 
 Always run tools as modules (`python -m tools.<name>`) from `pi-module`, or the imports will fail.
+
+The empty `printer_test.py` and `record_frames.py` placeholders were removed; neither feature was implemented. Automated tests below use mocks, not printer commands.
 
 ## Configuration (`.env`)
 
@@ -87,4 +87,28 @@ Keep a copy of these in the repo so a rebuilt Pi can restore them.
 
 - Never paste the API key into chat or commit it. Regenerate it in OctoPrint (Settings, API) if it has been exposed.
 - Never port-forward the camera stream (port 8080); it has no authentication. Share it over the same network, a hotspot, or Tailscale.
-- The stop decision should always read the camera locally on the Pi, so a network drop never affects safety.
+- Local stop orchestration remains integration work; this library alone does not guarantee a stop during a network outage.
+
+## Health and API boundaries
+
+Printer health requires a recognized healthy connection state and operational flags without an error. A connected `Error`, `Unknown`, or transitional connection state is not healthy. Invalid JSON, malformed nested objects, invalid flags, and invalid numeric readings raise `PrinterError`; health checks report OctoPrint `error` and printer `unknown`. Missing Pi telemetry remains `unknown` and is excluded from the aggregate health decision, so laptop mock checks can run.
+
+The backend still uses root `printer.py`: asynchronous `pause()` / `get_status()`, `PRINTER_TYPE`, `OCTOPRINT_URL`, and `OCTOPRINT_API_KEY`. This library uses synchronous `pause_printer()` / `get_printer_state()`, `MOCK`, `OCTO_URL`, and `OCTO_KEY`. These are separate adapters and settings; no automatic bridge or health-to-backend endpoint is implemented. Hardware frames are RGB; convert to BGR before passing to the existing OpenCV YOLO detector. The Pi vision publisher remains independent and submits camera confidence to `/live/update`; it never arms monitoring.
+
+For this PR, `origin/main` still has no vision tree. Vision files are preserved exactly from `feature/vision` commit `d3628e5`, including `--conf` and the Pi publisher fixes, rather than reverting to this branch's older snapshot.
+
+## Automated validation
+
+From the repository root (install `vision/requirements.txt` too for vision tests):
+
+```powershell
+$env:PYTHON_DOTENV_DISABLED="1"
+$env:PRINTER_TYPE="mock"
+$env:MOCK="1"
+python -m unittest discover -s pi-module/tests -v
+python -m unittest discover -s vision/tests -v
+python -m unittest test_api test_risk -v
+python demo_check.py
+```
+
+Tests replace HTTP transports and printer/notification actions with mocks. Physical camera connectivity, device telemetry, and OctoPrint-version compatibility still require deployment validation.
