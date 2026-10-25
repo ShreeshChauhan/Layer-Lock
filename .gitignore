@@ -25,6 +25,7 @@ vision/datasets/videos/
 vision/results/
 
 # Logs and temporary files
+local-backups/
 *.log
 .DS_Store
 vision/**/*.log

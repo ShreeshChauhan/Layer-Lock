@@ -16,6 +16,11 @@ from vision.src import pi_inference as pi
 
 class PiBackendTests(unittest.TestCase):
     def setUp(self):
+        printer_mode = patch('printer.PRINTER_TYPE', 'mock')
+        printer_mode.start()
+        self.addCleanup(printer_mode.stop)
+        backend.printer.mock_paused = False
+        backend.printer.mock_idle = False
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.db_patch = patch.object(incident_db, 'DB_PATH', Path(self.temporary.name) / 'incidents.db')

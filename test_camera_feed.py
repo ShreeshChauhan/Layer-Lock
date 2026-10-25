@@ -14,6 +14,36 @@ import camera_feed
 
 
 class CameraFeedTests(unittest.TestCase):
+    def test_continuous_stream_and_cleanup(self):
+        class Frames(httpx.AsyncByteStream):
+            closed = False
+            async def __aiter__(self):
+                yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\nfirst\r\n'
+                yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\nsecond\r\n'
+            async def aclose(self):
+                self.closed = True
+        frames = Frames()
+        def handler(request):
+            self.assertEqual(str(request.url), 'http://camera.test/stream')
+            return httpx.Response(200, headers={'content-type': 'multipart/x-mixed-replace; boundary=frame'}, stream=frames)
+        with patch.dict(os.environ, {'STREAM_URL': 'http://camera.test/stream'}), patch.object(
+                camera_feed.httpx, 'AsyncClient', side_effect=lambda **kwargs:
+                self.original_client(transport=httpx.MockTransport(handler), **kwargs)):
+            response = self.client.get('/camera/stream')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'first', response.content)
+        self.assertIn(b'second', response.content)
+        self.assertEqual(response.headers['x-accel-buffering'], 'no')
+        self.assertTrue(frames.closed)
+
+    def test_stream_rejects_invalid_content_and_missing_configuration(self):
+        with patch.dict(os.environ, {'STREAM_URL': ''}):
+            self.assertEqual(self.client.get('/camera/stream').status_code, 503)
+        with patch.dict(os.environ, {'STREAM_URL': 'http://camera.test/stream'}), patch.object(
+                camera_feed.httpx, 'AsyncClient', side_effect=lambda **kwargs:
+                self.original_client(transport=httpx.MockTransport(lambda req: httpx.Response(200, text='not video')), **kwargs)):
+            self.assertEqual(self.client.get('/camera/stream').status_code, 502)
+
     def setUp(self):
         app = FastAPI()
         app.include_router(camera_feed.router)

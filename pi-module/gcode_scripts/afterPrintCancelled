@@ -1,0 +1,4 @@
+; Stationary shutdown: no axis motion and no motor release.
+{% snippet 'disable_hotends' %}
+{% snippet 'disable_bed' %}
+M106 S0

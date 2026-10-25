@@ -1,10 +1,11 @@
 
 import sqlite3
+import os
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent / "print_guardian.db"
+DB_PATH = Path(os.getenv('INCIDENT_DB_PATH', str(Path(__file__).resolve().parent / 'print_guardian.db')))
 
 
 def connect():
@@ -29,6 +30,16 @@ def init_db():
                 notification_sent INTEGER NOT NULL
             )
         """)
+        columns = {row['name'] for row in connection.execute('PRAGMA table_info(incidents)')}
+        for name, kind in {
+            'file_name': 'TEXT', 'print_progress': 'REAL', 'print_time': 'REAL',
+            'resolution': "TEXT NOT NULL DEFAULT 'pending'", 'resolved_at': 'TEXT'
+        }.items():
+            if name not in columns:
+                connection.execute(f'ALTER TABLE incidents ADD COLUMN {name} {kind}')
+        connection.execute('''CREATE TABLE IF NOT EXISTS printer_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL,
+            message TEXT NOT NULL, simulated INTEGER NOT NULL)''')
         connection.commit()
 
 
@@ -40,7 +51,10 @@ def save_incident(
     filament_runout,
     pause_success,
     pause_message,
-    notification_sent
+    notification_sent,
+    file_name=None,
+    print_progress=None,
+    print_time=None
 ):
     timestamp = datetime.now(timezone.utc).isoformat(
         timespec="seconds"
@@ -57,9 +71,9 @@ def save_incident(
                 filament_runout,
                 pause_success,
                 pause_message,
-                notification_sent
+                notification_sent, file_name, print_progress, print_time
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             timestamp,
             mode,
@@ -69,7 +83,7 @@ def save_incident(
             int(filament_runout),
             int(pause_success),
             str(pause_message),
-            int(notification_sent)
+            int(notification_sent), file_name, print_progress, print_time
         ))
 
         connection.commit()
@@ -100,6 +114,41 @@ def get_incident_stats():
         """).fetchone()
 
     return dict(row)
+
+
+def update_notification(incident_id, sent):
+    with closing(connect()) as connection:
+        connection.execute('UPDATE incidents SET notification_sent=? WHERE id=?', (int(sent), incident_id))
+        connection.commit()
+
+
+def resolve_incident(incident_id, resolution):
+    with closing(connect()) as connection:
+        connection.execute('''UPDATE incidents SET resolution=?, resolved_at=?
+            WHERE resolution='pending' AND mode=(SELECT mode FROM incidents WHERE id=?)
+            AND file_name IS (SELECT file_name FROM incidents WHERE id=?)''',
+            (resolution, datetime.now(timezone.utc).isoformat(), incident_id, incident_id))
+        connection.commit()
+
+
+def open_incident(mode, file_name):
+    with closing(connect()) as connection:
+        row = connection.execute('''SELECT * FROM incidents WHERE mode=? AND file_name IS ?
+            AND resolution='pending' ORDER BY id DESC LIMIT 1''', (mode, file_name)).fetchone()
+    return dict(row) if row else None
+
+
+def save_event(message, simulated):
+    with closing(connect()) as connection:
+        connection.execute('INSERT INTO printer_events(timestamp,message,simulated) VALUES(?,?,?)',
+                           (datetime.now(timezone.utc).isoformat(), message, int(simulated)))
+        connection.commit()
+
+
+def get_events(limit=100):
+    with closing(connect()) as connection:
+        rows = connection.execute('SELECT * FROM printer_events ORDER BY id DESC LIMIT ?', (limit,)).fetchall()
+    return [dict(row) for row in rows]
 
 
 init_db()

@@ -1,2 +1,3 @@
-// Override at build time when the API is not on this computer.
-export const API = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+// Vite proxies /api to FastAPI. Remote browsers use the app host, not their own localhost.
+// Production hosting should also proxy /api, or set VITE_API_URL at build time.
+export const API = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');

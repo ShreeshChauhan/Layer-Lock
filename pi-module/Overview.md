@@ -66,11 +66,10 @@ Health thresholds (`DARK_MEAN`, `FLAT_STD`, `FROZEN_DIFF`, `FROZEN_COUNT`, `FRAM
 
 OctoPrint runs these itself on pause, resume, and cancel, whether the command comes from the web UI or from this code. They're edited under **Settings, GCODE Scripts** and live in `~/.octoprint/scripts/gcode/`. They are the same files, so there's nothing to sync.
 
-- `afterPrintPaused`: retracts, lowers the bed, parks the head at X=0 Y=224.5.
-- `beforePrintResumed`: returns to the saved position, then un-retracts. Needs **Log position on pause** enabled.
-- `afterPrintCancelled`: heaters and fan off, retract, bed down, park the head.
-
-Keep a copy of these in the repo so a rebuilt Pi can restore them.
+The tracked `gcode_scripts/` hooks now use stationary pause/resume and heater/fan
+shutdown on cancel/completion. They deliberately contain no park, lift, retract,
+home, or motor-release commands. See root `DASHBOARD_INTEGRATION.md` for installation,
+backups, existing uploaded-file limitations, and required physical-limit checks.
 
 ## Troubleshooting
 

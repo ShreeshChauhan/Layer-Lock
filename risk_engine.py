@@ -79,7 +79,17 @@ class RiskEngine:
         self.paused = True
         self.state = "PAUSED"
         self.high_risk_since = None
-        self.log("Printer pause confirmed")
+        self.log("Printer pause command accepted")
+
+    def recover(self, resume=False):
+        self.paused = False
+        self.high_risk_since = None
+        self.risk_score = 0
+        if not resume:
+            self.armed = False
+        self.state = "WATCHING" if self.armed else "IDLE"
+        self.log("Resume command accepted" if resume else "Cancel command accepted; monitoring disarmed")
+        return self.status()
 
     def reset_simulation(self):
         self.armed = False

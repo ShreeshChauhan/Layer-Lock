@@ -7,12 +7,56 @@ from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Response
+from starlette.responses import StreamingResponse
+from starlette.background import BackgroundTask
 from PIL import Image, UnidentifiedImageError
 from dotenv import dotenv_values
 
 router = APIRouter()
 MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024
 CONFIG_FILE = Path(__file__).resolve().parent / '.env'
+
+
+@router.get('/camera/stream')
+async def camera_stream():
+    settings = {**dotenv_values(CONFIG_FILE.parent / 'pi-module' / '.env'),
+                **dotenv_values(CONFIG_FILE), **os.environ}
+    url = settings.get('STREAM_URL', '')
+    try:
+        parsed = urlsplit(url)
+        valid = parsed.scheme in ('http', 'https') and bool(parsed.hostname)
+    except ValueError:
+        valid = False
+    if not valid:
+        raise HTTPException(503, 'Set STREAM_URL on the backend')
+    client = httpx.AsyncClient(timeout=httpx.Timeout(10, read=15), follow_redirects=False)
+    upstream = None
+
+    async def close():
+        if upstream is not None:
+            await upstream.aclose()
+        await client.aclose()
+
+    try:
+        upstream = await client.send(client.build_request('GET', url), stream=True)
+        upstream.raise_for_status()
+        content_type = upstream.headers.get('content-type', '')
+        if not content_type.lower().startswith('multipart/x-mixed-replace') or 'boundary=' not in content_type.lower():
+            raise ValueError('Expected an MJPEG stream')
+    except (httpx.HTTPError, ValueError) as error:
+        await close()
+        raise HTTPException(502, 'Camera stream unavailable; check the Pi camera service') from error
+
+    async def chunks():
+        try:
+            async for chunk in upstream.aiter_raw():
+                yield chunk
+        finally:
+            await close()
+
+    return StreamingResponse(chunks(), media_type=content_type,
+        headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'},
+        background=BackgroundTask(close))
 
 
 @router.get('/camera/snapshot')

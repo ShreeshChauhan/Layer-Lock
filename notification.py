@@ -15,7 +15,8 @@ async def send_discord_alert(
     failure_type: str,
     risk_score: float,
     printer_status: str = "Paused",
-    is_test: bool = False
+    is_test: bool = False,
+    action_message: str = 'Pause command accepted'
 ) -> bool:
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "").strip()
 
@@ -32,7 +33,7 @@ async def send_discord_alert(
     action = (
         "Test only - no printer action"
         if is_test
-        else "Pause command accepted"
+        else action_message
     )
 
     payload = {

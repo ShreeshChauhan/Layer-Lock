@@ -7983,15 +7983,10 @@ M106 S0
 ;TYPE:Custom
 ; filament end gcode
 ; # # # # # # START Footer
-G91; relative coordinates
-;G1 E-1 F1200; retract the filament
-G1 Z+15  X-10 Y-10 E-7  F6000; move Z a bit
-; G1 X-10 Y-10 F6000; move XY a bit
-G1 E-5.5 F300; retract the filament
-G28 X0 Y0; move X/Y to min endstops, so the head is out of the way
-M104 S0; extruder heater off
-M140 S0; heated bed heater off (if you have it)
-M84; disable motors
+; Stationary finish; retain motor holding torque.
+M104 S0
+M140 S0
+M106 S0
 ; # # # # # # END Footer
 M73 P100 R0
 ; EXECUTABLE_BLOCK_END
@@ -8299,7 +8294,7 @@ M73 P100 R0
 ; line_width = 0.45
 ; long_retractions_when_cut = 0
 ; long_retractions_when_ec = 0
-; machine_end_gcode = ; # # # # # # START Footer\nG91; relative coordinates\n;G1 E-1 F1200; retract the filament\nG1 Z+15  X-10 Y-10 E-7  F6000; move Z a bit\n; G1 X-10 Y-10 F6000; move XY a bit\nG1 E-5.5 F300; retract the filament\nG28 X0 Y0; move X/Y to min endstops, so the head is out of the way\nM104 S0; extruder heater off\nM140 S0; heated bed heater off (if you have it)\nM84; disable motors\n; # # # # # # END Footer\n
+; machine_end_gcode = ; # # # # # # START Footer\n; Stationary finish; retain motor holding torque.\nM104 S0\nM140 S0\nM106 S0\n; # # # # # # END Footer
 ; machine_load_filament_time = 0
 ; machine_max_acceleration_e = 10000,10000
 ; machine_max_acceleration_extruding = 1500,1500

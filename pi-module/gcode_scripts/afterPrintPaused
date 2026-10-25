@@ -1,0 +1,2 @@
+; Stationary pause: preserve position and all coordinate/extrusion modes.
+; No retract, park, home, or motor release until physical limits are verified.

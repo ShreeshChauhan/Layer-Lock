@@ -1,0 +1,2 @@
+; Stationary resume: pause did not move the printer or change extrusion modes.
+; Do not jog or move axes manually while paused.
