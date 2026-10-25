@@ -1,0 +1,12 @@
+{
+  "endstops_verified": false,
+  "positive_z_lowers_bed": false,
+  "absolute_xyz_host_prints": false,
+  "limits": {
+    "x": [null, null],
+    "y": [null, null],
+    "z": [null, null]
+  },
+  "park": {"x": null, "y": null, "z": null},
+  "clearance_mm": 5
+}

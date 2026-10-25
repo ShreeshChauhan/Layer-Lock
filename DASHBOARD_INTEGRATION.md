@@ -230,3 +230,43 @@ verification of stock UM2+ homing/endstops, `configure_motion_scripts.py --apply
 then X/Y homing. It uses no guessed parking coordinates. This option is **not
 installed** on the current machine. Pause/resume and completion remain stationary.
 Reference: https://support.makerbot.com/s/article/1667337905185
+
+### Paired pause/resume coordinate parking (prepared, not enabled)
+
+`parking_scripts.py` builds matched pause/resume/cancel hooks from a verified
+configuration. Copy `pi-module/gcode_scripts/parking.example.json` to an ignored
+local file and fill in physically verified travel limits and an interior parking
+position. All verification flags intentionally default to false; coordinates have
+no defaults. Install the updated root requirements before using this tool.
+
+For a stock UM2+ where positive Z lowers the bed, pause first lowers the bed to
+the verified park Z, then moves the head to park XY. It uses OctoPrint's captured
+`pause_position`; resume first ensures bed clearance, returns to the saved XY,
+then restores saved Z, E coordinate and feedrate. It never homes or extrudes
+filament during the pause/resume sequence and does not change extrusion mode.
+Only single-tool, absolute-XYZ prints streamed from OctoPrint are supported.
+Do not jog, release motors, change leveling, or move the bed/head manually while
+paused. Position capture cannot detect physical movement or skipped motor steps.
+
+If the saved print height leaves less than the configured clearance below park Z,
+both pause and resume remain stationary. Missing/out-of-range return coordinates
+skip parking and abort a later resume with OctoPrint's `@cancel` host command.
+Cancel always disables heaters and fan; it parks only if its captured position
+is valid and there is sufficient clearance. Parking reduces contact/ooze on the
+part; it does not guarantee prevention of hot-end clogs or heat creep.
+
+After hardware repair and supervised verification, preview and install with:
+
+```powershell
+.\.venv\Scripts\python.exe configure_motion_scripts.py --parking-config local-backups/parking.json
+.\.venv\Scripts\python.exe configure_motion_scripts.py --parking-config local-backups/parking.json --apply
+```
+
+The installer requires idle/offline state, checks the single-extruder profile,
+backs up the scripts and position-logging flags, enables position logging for
+both pause and cancel, and reads back the installed settings. It leaves the
+completion hook stationary. The current Pi still uses stationary hooks because
+intermittent endstop/travel failure has been reported. Do not enable parking just
+to test whether an unsafe machine will collide again.
+
+Reference: https://docs.octoprint.org/en/main/features/gcode_scripts.html
