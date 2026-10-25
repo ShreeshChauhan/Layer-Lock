@@ -1,13 +1,32 @@
+# Python
 .venv/
-.env
 __pycache__/
+*.pyc
 
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
 
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+
+# Local database
+print_guardian.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Vision weights, footage and generated output
 vision/models/
 vision/datasets/videos/
 vision/results/
 
-# Generated logs
+# Logs and temporary files
+*.log
+.DS_Store
 vision/**/*.log
 vision/**/*.tmp
 vision/**/*.part
