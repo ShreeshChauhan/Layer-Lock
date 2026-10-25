@@ -5,6 +5,11 @@ from configure_motion_scripts import ROOT, NAMES, can_configure
 
 
 class MotionScriptTests(unittest.TestCase):
+    def test_optional_um2_cancel_homes_bed_before_head_without_fixed_coordinates(self):
+        script = (ROOT / 'pi-module/gcode_scripts/ultimaker2plus/afterPrintCancelled').read_text()
+        commands = [line for line in script.splitlines() if line and not line.startswith(';')]
+        self.assertEqual(commands, ['M400', "{% snippet 'disable_hotends' %}",
+                                   "{% snippet 'disable_bed' %}", 'M106 S0', 'G28 Z0', 'G28 X0 Y0'])
     def test_only_idle_or_offline_can_reconfigure(self):
         for state in ('Printing', 'Paused', 'Pausing', 'Cancelling', 'Unknown'):
             self.assertFalse(can_configure({'state': state, 'printing': False, 'paused': False}))

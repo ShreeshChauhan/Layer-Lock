@@ -27,6 +27,15 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
             item.start()
             self.addCleanup(item.stop)
         self.printer = adapter.Printer()
+        self.addAsyncCleanup(self.printer.close)
+
+    async def test_connections_are_reused_and_closed(self):
+        await self.printer.get_status()
+        client = self.printer._client
+        await self.printer.get_status()
+        self.assertIs(self.printer._client, client)
+        await self.printer.close()
+        self.assertTrue(client.is_closed)
 
     def handle(self, request):
         self.assertEqual(request.headers['X-Api-Key'], 'test-key')

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FileCode, Pause, Play, Printer, RefreshCw, Upload, X } from 'lucide-react';
+import { Check, FileCode, Pause, Play, Printer, RefreshCw, Upload, X, Trash2 } from 'lucide-react';
 import { request } from './useDashboard';
 import { stateClass } from './printerState';
 
@@ -16,7 +16,6 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
-  const [remove, setRemove] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const fileInput = useRef(null);
   const uploadInFlight = useRef(false);
@@ -65,15 +64,14 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
     finally { uploadInFlight.current = false; setUploading(false); }
   }
 
-  async function deleteFile() {
+  async function deleteFile(remove) {
     if (deleting) return;
     setDeleting(true); setError('');
     try {
-      await request(`/printer/files?path=${encodeURIComponent(remove)}&confirmed=true`, { method: 'DELETE' });
+      await request(`/printer/files?path=${encodeURIComponent(remove)}`, { method: 'DELETE' });
       setFiles(previous => previous.filter(file => file.path !== remove));
       if (selectedFile === remove) onSelect('');
       setMessage(`Removed ${remove}.`);
-      setRemove(null);
     } catch (err) { setError(err.message); }
     finally { setDeleting(false); }
   }
@@ -105,12 +103,6 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
       <span className="muted">Sliced G-code · up to 100 MB</span>
     </div>
     {error && <p className="file-error" role="alert">{error}</p>}
-    {remove && <div className="delete-review" role="group" aria-label="Confirm file removal">
-      <p>Permanently remove <strong>{remove}</strong> from OctoPrint?</p>
-      <button className="secondary-btn" disabled={deleting} onClick={() => setRemove(null)}>Keep file</button>
-      <button className="danger-btn" disabled={deleting || busy || uploading || unavailable || printer?.state?.toLowerCase() !== 'operational'} onClick={deleteFile}>
-        {deleting ? 'Removing…' : 'Confirm removal'}</button>
-    </div>}
     <p className="upload-status" role="status">{uploading ? 'Saving file to printer storage…' : message}</p>
     <input className="file-search" type="search" aria-label="Search uploaded files" placeholder="Search files…"
       value={search} onChange={event => setSearch(event.target.value)} />
@@ -123,7 +115,7 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
           {selectedFile === file.path ? <Check size={18} aria-label="Selected" /> : <FileCode size={18} />}
         </button><button className="danger-btn remove-file" aria-label={`Remove ${file.path}`}
           disabled={busy || deleting || uploading || unavailable || printer?.state?.toLowerCase() !== 'operational'}
-          onClick={() => { setError(''); setRemove(file.path); }}><X size={16} /></button></div>) : <p className="muted">{search ? 'No matching files.' : 'No uploaded files. Upload G-code to get started.'}</p>}
+          onClick={() => deleteFile(file.path)}><Trash2 size={17} /></button></div>) : <p className="muted">{search ? 'No matching files.' : 'No uploaded files. Upload G-code to get started.'}</p>}
     </div>
     <p className="muted files-note">Files are saved on OctoPrint. Selecting or uploading a file does not start a print.</p>
   </section>;

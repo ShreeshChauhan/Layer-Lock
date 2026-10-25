@@ -1,0 +1,10 @@
+; Ultimaker 2+ ONLY: requires verified, functioning stock homing/endstops.
+; Home the bed DOWN to its endstop first, before traversing the head.
+; Do not use on printers that home Z toward the nozzle.
+M400
+{% snippet 'disable_hotends' %}
+{% snippet 'disable_bed' %}
+M106 S0
+G28 Z0
+G28 X0 Y0
+; Retain motor holding torque. No guessed park coordinates or extrusion moves.

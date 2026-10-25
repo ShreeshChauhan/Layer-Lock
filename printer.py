@@ -40,6 +40,7 @@ def validate_upload_name(name):
 
 class Printer:
     def __init__(self):
+        self._client = None
         self.mock_paused = False
         self.mock_idle = False
         self.mock_file = 'mock_part.gcode'
@@ -52,11 +53,18 @@ class Printer:
     async def _octo(self, method, path, *, timeout=5, **kwargs):
         if not OCTOPRINT_API_KEY:
             raise ValueError('Configure OCTOPRINT_API_KEY (or OCTO_KEY) on the backend')
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.request(method, OCTOPRINT_URL + path,
-                headers={'X-Api-Key': OCTOPRINT_API_KEY}, **kwargs)
+        # Reuse connections: repeated client/SSL setup can stall video forwarding.
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=5)
+        response = await self._client.request(method, OCTOPRINT_URL + path,
+            headers={'X-Api-Key': OCTOPRINT_API_KEY}, timeout=timeout, **kwargs)
         response.raise_for_status()
         return response
+
+    async def close(self):
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
 
     async def _printer_response(self):
         try:

@@ -1,5 +1,6 @@
 """Dashboard lifecycle and persistent incident/event integration."""
 import unittest
+from contextlib import closing
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -34,15 +35,60 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(len(first['temperature_history']), 1)
         self.assertEqual(first['events'], second['events'])
 
-    def test_delete_requires_confirmation_idle_and_existing_file(self):
+    def test_delete_requires_idle_and_existing_file_without_confirmation(self):
         path = '/printer/files?path=mock_part.gcode'
         self.assertEqual(self.client.delete(path).status_code, 409)
         self.assertEqual(self.client.delete(path + '&confirmed=true').status_code, 409)
         main.printer.mock_idle = True
-        self.assertEqual(self.client.delete(path + '&confirmed=true').status_code, 200)
+        self.assertEqual(self.client.delete(path).status_code, 200)
         self.assertEqual(self.client.get('/printer/files').json()['files'], [])
         self.assertEqual(self.client.delete(path + '&confirmed=true').status_code, 409)
         self.assertTrue(any('File removed' in event['message'] for event in self.client.get('/dashboard').json()['events']))
+
+    def test_manual_pause_and_cancel_record_file_time_and_reason(self):
+        self.assertEqual(self.client.post('/printer/pause').status_code, 200)
+        self.assertEqual(self.client.post('/printer/cancel').status_code, 200)
+        history = self.client.get('/dashboard').json()['print_history']
+        self.assertEqual([row['action'] for row in history], ['cancel', 'pause'])
+        for row in history:
+            self.assertEqual(row['reason'], 'manual')
+            self.assertEqual(row['file_name'], 'mock_part.gcode')
+            self.assertIn('T', row['timestamp'])
+            self.assertIn('+00:00', row['timestamp'])
+            self.assertEqual(row['print_time'], 1200)
+
+    def test_old_manual_commands_are_recovered_once(self):
+        with closing(incident_db.connect()) as connection:
+            connection.execute("DELETE FROM schema_migrations WHERE name='manual_action_history'")
+            connection.commit()
+        incident_db.save_event('Selected print: old.gcode', False)
+        incident_db.save_event('Cancel command accepted', False)
+        incident_db.init_db()
+        incident_db.init_db()
+        history = incident_db.get_print_history()
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]['file_name'], 'old.gcode')
+        self.assertEqual(history[0]['reason'], 'manual')
+        self.assertIsNone(history[0]['print_time'])
+
+    def test_automatic_pause_history_is_not_duplicated_by_polling(self):
+        self.client.get('/dashboard')
+        self.client.post('/risk/arm')
+        self.post_reading(runout=True)
+        main.monitor.last_sample = 0
+        history = self.client.get('/dashboard').json()['print_history']
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]['reason'], 'automatic')
+
+    def test_external_pause_is_recorded_without_guessing_initiator(self):
+        self.client.get('/dashboard')
+        main.printer.mock_paused = True
+        main.monitor.last_sample = 0
+        history = self.client.get('/dashboard').json()['print_history']
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]['reason'], 'external / unknown')
+        main.monitor.last_sample = 0
+        self.assertEqual(len(self.client.get('/dashboard').json()['print_history']), 1)
 
     def test_reviewed_resume_keeps_history_and_rearms_lifecycle(self):
         self.client.post('/risk/arm')

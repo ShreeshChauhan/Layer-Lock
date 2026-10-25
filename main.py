@@ -17,7 +17,7 @@ from telemetry import PrinterMonitor
 from risk_engine import risk_engine
 from camera_feed import router as camera_router
 from incident_db import (
-    get_incidents,
+    get_incidents, get_print_history, save_print_action,
     get_incident_stats,
     save_incident, update_notification, resolve_incident, open_incident, get_events
 )
@@ -47,6 +47,7 @@ async def lifespan(app):
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        await printer.close()
 
 
 app = FastAPI(
@@ -258,6 +259,7 @@ async def dashboard():
         'sensor': {**latest_sensor, 'health': sensor_health()},
         'risk': risk_engine.status(), 'events': get_events(),
         'incidents': get_incidents(100), 'incident_stats': get_incident_stats(),
+        'print_history': get_print_history(),
         'active_incident': open_incident(mode, current.get('file')) if current else None,
     }
 
@@ -275,9 +277,7 @@ upload_lock = asyncio.Lock()
 
 
 @app.delete('/printer/files')
-async def delete_printer_file(path: str = Query(min_length=1), confirmed: bool = False):
-    if not confirmed:
-        raise HTTPException(409, 'Confirm permanent removal of this file')
+async def delete_printer_file(path: str = Query(min_length=1)):
     async with risk_lock:
         async with upload_lock:
             try:
@@ -322,13 +322,18 @@ async def upload_printer_file(request: Request, filename: str = Query(min_length
 
 async def run_command(action, path=None):
     async with risk_lock:
+        requested = False
         try:
             before = await printer.get_status()
             incident = open_incident(mode, before.get('file'))
             if action == 'resume' and incident and mode == 'live' and sensor_health()['status'] != 'CONNECTED':
                 raise CommandBlocked('Restore fresh vision readings before resuming this incident')
             monitor.event(f'{action.title()} requested' + (f': {path}' if path else ''))
+            monitor.expect_action(action, before)
+            requested = True
             result = await printer.start(path) if action == 'start' else await getattr(printer, action)()
+            if action in ('pause', 'cancel'):
+                save_print_action(action, 'manual', before, 'Dashboard control')
             if action in ('resume', 'cancel'):
                 risk_engine.recover(resume=action == 'resume')
                 if incident:
@@ -341,8 +346,12 @@ async def run_command(action, path=None):
                 risk_engine.confirm_pause()
             monitor.event(result['message'])
         except CommandBlocked as error:
+            monitor.expected.pop(action, None)
             raise HTTPException(409, str(error)) from error
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
+            monitor.expected.pop(action, None)
+            if requested and action in ('pause', 'cancel'):
+                save_print_action(action, 'manual', before, 'Dashboard control', 'Failed or unconfirmed')
             monitor.event(f'{action.title()} command failed')
             raise HTTPException(503, f'{action.title()} command failed; check printer connection') from error
     await monitor.sample(force=True)
@@ -364,9 +373,7 @@ async def resume_print(data: ReviewPrint):
 
 
 @app.post('/printer/cancel')
-async def cancel_print(data: ReviewPrint):
-    if not data.confirmed:
-        raise HTTPException(409, 'Confirm cancellation of the current print')
+async def cancel_print():
     return await run_command('cancel')
 
 
@@ -436,6 +443,7 @@ async def process_sensor_update(data: SensorData, source: str):
 
         failure_type = 'Filament Runout' if data.filament_runout else (data.failure_type or 'Camera Failure')
         pause_error = None
+        monitor.expect_action('pause', job)
         try:
             pause_result = await printer.pause(status=job)
             if not pause_result.get('success'):
@@ -443,6 +451,7 @@ async def process_sensor_update(data: SensorData, source: str):
             risk_engine.confirm_pause()
             monitor.event(f'Issue detected: {failure_type}; automatic pause command accepted')
         except (httpx.HTTPError, ValueError) as error:
+            monitor.expected.pop('pause', None)
             pause_error = str(error)
             pause_result = {'success': False, 'message': pause_error}
             risk_engine.log('Printer pause command failed')

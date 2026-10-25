@@ -40,6 +40,30 @@ def init_db():
         connection.execute('''CREATE TABLE IF NOT EXISTS printer_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL,
             message TEXT NOT NULL, simulated INTEGER NOT NULL)''')
+        connection.execute('''CREATE TABLE IF NOT EXISTS print_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL,
+            file_name TEXT, action TEXT NOT NULL, reason TEXT NOT NULL,
+            detail TEXT NOT NULL, print_progress REAL, print_time REAL,
+            outcome TEXT NOT NULL, simulated INTEGER NOT NULL)''')
+        connection.execute('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY)')
+        if not connection.execute("SELECT 1 FROM schema_migrations WHERE name='manual_action_history'").fetchone():
+            # Recover earlier dashboard commands from their accepted event entries.
+            # Never invent progress/elapsed values that the old log did not capture.
+            cutoff = connection.execute('SELECT MIN(timestamp) FROM print_actions').fetchone()[0]
+            events = connection.execute('''SELECT * FROM printer_events
+                WHERE message IN ('Pause command accepted', 'Cancel command accepted')
+                AND (? IS NULL OR timestamp < ?) ORDER BY id''', (cutoff, cutoff)).fetchall()
+            for event in events:
+                selected = connection.execute('''SELECT message FROM printer_events
+                    WHERE id < ? AND simulated=? AND message LIKE 'Selected print: %'
+                    ORDER BY id DESC LIMIT 1''', (event['id'], event['simulated'])).fetchone()
+                connection.execute('''INSERT INTO print_actions
+                    (timestamp,file_name,action,reason,detail,outcome,simulated)
+                    VALUES (?,?,?,?,?,?,?)''', (event['timestamp'],
+                    selected['message'][len('Selected print: '):] if selected else None,
+                    event['message'].split()[0].lower(), 'manual',
+                    'Recovered from printer event log', 'Command accepted', event['simulated']))
+            connection.execute("INSERT INTO schema_migrations VALUES ('manual_action_history')")
         connection.commit()
 
 
@@ -148,6 +172,31 @@ def save_event(message, simulated):
 def get_events(limit=100):
     with closing(connect()) as connection:
         rows = connection.execute('SELECT * FROM printer_events ORDER BY id DESC LIMIT ?', (limit,)).fetchall()
+    return [dict(row) for row in rows]
+
+
+def save_print_action(action, reason, status, detail='', outcome='Command accepted'):
+    with closing(connect()) as connection:
+        connection.execute('''INSERT INTO print_actions
+            (timestamp,file_name,action,reason,detail,print_progress,print_time,outcome,simulated)
+            VALUES (?,?,?,?,?,?,?,?,?)''', (datetime.now(timezone.utc).isoformat(),
+            status.get('file'), action, reason, detail, status.get('progress'),
+            status.get('print_time'), outcome, int(status.get('simulated', False))))
+        connection.commit()
+
+
+def get_print_history(limit=200):
+    # Automatic incidents retain their original timestamps and notification/recovery data.
+    with closing(connect()) as connection:
+        rows = connection.execute('''SELECT * FROM (
+            SELECT 'action-' || id AS id, timestamp, file_name, action, reason, detail,
+                   print_progress, print_time, outcome, simulated FROM print_actions
+            UNION ALL
+            SELECT 'incident-' || id AS id, timestamp, file_name, 'pause' AS action,
+                   'automatic' AS reason, failure_type AS detail, print_progress, print_time,
+                   CASE WHEN pause_success THEN 'Command accepted' ELSE 'Command failed' END AS outcome,
+                   mode='simulation' AS simulated FROM incidents
+            ) ORDER BY timestamp DESC, id DESC LIMIT ?''', (limit,)).fetchall()
     return [dict(row) for row in rows]
 
 

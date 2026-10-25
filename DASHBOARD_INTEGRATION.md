@@ -84,7 +84,8 @@ one upstream stream; camera resolution, Wi-Fi and viewer count affect performanc
   Refresh retrieves files added outside the dashboard; search filters the list.
   Uploads have their own timeout and do not hold the printer-control lock, so pause
   and cancel remain available during an upload. The web interface does not slice STLs.
-- Start, resume, and cancel have a review dialog. Resume requires an actually paused
+- Start and resume have a review dialog. Cancel and file removal act immediately.
+  Trash buttons match file-row height; deletion remains limited to an idle printer. Resume requires an actually paused
   operational printer and a tool0 target above zero with actual nozzle temperature
   at least `RESUME_MIN_TEMP_C` (default 180 C), matching the Pi library's guard.
 - Cancel uses OctoPrint's job-cancel command. Pause/park/resume/cancel motion and
@@ -188,3 +189,37 @@ References:
 - https://um-support-files.ultimaker.com/Product-datasheet/Other/Ultimaker%202%2B%20series%20-%20Product%20data%20sheet.pdf
 - https://docs.octoprint.org/en/main/features/gcode_scripts.html
 - https://marlinfw.org/docs/hardware/endstops.html
+
+## Dashboard refinements and action history
+
+Progress, elapsed time and remaining-time estimate share one card. The event log
+has one internal scrollbar; a new event returns it to the newest entry at the top.
+SQLite `print_actions` records manual pause/cancel requests with file, UTC timestamp,
+progress, elapsed time and outcome. The history view combines these with automatic
+incidents and renders full local date/time. Existing accepted manual command events
+are backfilled once, preserving their timestamps; unavailable elapsed/progress are
+left blank. New external pause/cancel transitions are recorded as external/unknown,
+not guessed to be manual or automatic. Polling can miss short external transitions;
+this is not an exhaustive OctoPrint event subscription.
+
+The printer adapter now pools its HTTP connections. This avoids synchronous client
+setup during each telemetry poll, which was blocking MJPEG delivery. A local
+12-second check after the change measured 131 frames and a 0.11-second maximum gap
+(previous proxy sample: 1.26 seconds). Actual results depend on camera/network load.
+
+### Cancel parking remains disabled on the current printer
+
+The owner reports intermittent failure of the printer's own homing operations.
+Do not enable automatic cancel homing until that fault is resolved. Leveling changes
+nozzle clearance; it does not provide force-feedback collision detection. Moving
+an axis manually can invalidate assumed coordinates. Inspect endstop actuation,
+wiring and free travel using the manufacturer's troubleshooting procedure; do not
+repeat movements that grind or collide to diagnose them remotely.
+
+An optional UM2+-specific cancel hook is prepared in
+`pi-module/gcode_scripts/ultimaker2plus/afterPrintCancelled`. After physical
+verification of stock UM2+ homing/endstops, `configure_motion_scripts.py --apply
+--verified-um2-homing` installs it: heaters off, Z homing to the bottom endstop first,
+then X/Y homing. It uses no guessed parking coordinates. This option is **not
+installed** on the current machine. Pause/resume and completion remain stationary.
+Reference: https://support.makerbot.com/s/article/1667337905185

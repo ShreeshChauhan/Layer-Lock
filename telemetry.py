@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from collections import deque
 
-from incident_db import save_event
+from incident_db import save_event, save_print_action
 
 
 class PrinterMonitor:
@@ -15,6 +15,25 @@ class PrinterMonitor:
         self.history = deque(maxlen=400)  # approximately 20 minutes at 3 seconds
         self.last_sample = 0
         self.lock = asyncio.Lock()
+        self.expected = {}
+
+    def expect_action(self, action, status):
+        if action in ('pause', 'cancel'):
+            self.expected[action] = (status.get('file'), time.monotonic() + 60)
+
+    def observe_action(self, current, previous):
+        state = current['state'].lower()
+        action = 'pause' if state in ('pausing', 'paused') else 'cancel' if state in ('cancelling', 'cancelled', 'canceled', 'canceling') else None
+        old_state = (previous or {}).get('state', '').lower()
+        old_action = 'pause' if old_state in ('pausing', 'paused') else 'cancel' if old_state in ('cancelling', 'cancelled', 'canceled', 'canceling') else None
+        if previous is None or action is None or action == old_action:
+            return
+        expected_file, expires = self.expected.pop(action, (None, 0))
+        file = current.get('file') or previous.get('file')
+        if expires > time.monotonic() and file == expected_file:
+            return
+        save_print_action(action, 'external / unknown', {**previous, **current, 'file': file},
+                          'Observed outside the web controls; initiator unavailable', 'Observed')
 
     def event(self, message):
         save_event(message, self.printer.simulated)
@@ -26,6 +45,7 @@ class PrinterMonitor:
             try:
                 current = await self.printer.get_status()
                 previous = self.status
+                self.observe_action(current, previous)
                 if self.error:
                     self.event('Printer telemetry connection restored')
                 if previous is None or previous['state'] != current['state']:

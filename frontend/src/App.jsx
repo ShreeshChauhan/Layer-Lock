@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CirclePower, Clock, Gauge, History, Printer, RefreshCw, Terminal } from 'lucide-react';
+import { Activity, CirclePower, Gauge, History, Printer, RefreshCw, Terminal } from 'lucide-react';
 import CameraFeed from './CameraFeed';
 import PrinterControls from './PrinterControls';
 import RecoveryPanel from './RecoveryPanel';
@@ -57,6 +57,9 @@ export default function App() {
   const freshSensor = sensor?.health?.status === 'CONNECTED';
   const validTelemetry = printer && !unavailable;
   const progress = validTelemetry ? printer.progress : null;
+  const eventList = useRef(null);
+  const latestEvent = data?.events?.[0]?.id;
+  useEffect(() => { if (eventList.current) eventList.current.scrollTop = 0; }, [latestEvent]);
 
   async function command(path, body) {
     if (busy) return;
@@ -68,7 +71,10 @@ export default function App() {
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
-  function openReview(action) { setError(''); setReview(action); }
+  function openReview(action) {
+    if (action === 'cancel') { command('/printer/cancel'); return; }
+    setError(''); setReview(action);
+  }
   return <div className="dashboard"><main className="main">
     <header className="topbar"><div>
       <div className="header-brand"><img className="brand-logo" src="/brand/wolf-engine.svg" alt="LayerLock emblem" />
@@ -101,10 +107,10 @@ export default function App() {
         <div className="stat-footer">{validTelemetry ? printer.file || 'No file selected' : 'Waiting for printer telemetry'}</div></article>
       <article className="panel stat"><div className="stat-label"><Activity /> PRINT PROGRESS</div>
         <div className="stat-value">{progress == null ? '—' : `${progress.toFixed(1)}%`}</div>
-        <div className="progress-track"><div style={{ width: `${Math.max(0, Math.min(100, progress || 0))}%` }} /></div></article>
-      <article className="panel stat"><div className="stat-label"><Clock /> TIME REMAINING</div>
-        <div className="stat-value">{duration(validTelemetry ? printer.print_time_left : null)}</div>
-        <div className="stat-footer">Elapsed: {duration(validTelemetry ? printer.print_time : null)} · OctoPrint estimate</div></article>
+        <div className="progress-track"><div style={{ width: `${Math.max(0, Math.min(100, progress || 0))}%` }} /></div>
+        <div className="stat-footer print-timing"><span>Remaining: <strong>{duration(validTelemetry ? printer.print_time_left : null)}</strong></span>
+          <span>Elapsed: {duration(validTelemetry ? printer.print_time : null)}</span></div>
+        <div className="muted">Time remaining is estimated by OctoPrint.</div></article>
       <article className={`panel stat risk-stat ${risk?.state === 'WARNING' ? 'risk-alert' : ''}`}>
         <div className="stat-label"><Gauge /> FAILURE SIGNAL</div>
         <RiskDial value={freshSensor ? risk?.risk_score : 0} />
@@ -121,7 +127,7 @@ export default function App() {
     <section className="content-grid telemetry-grid">
       <TemperatureChart history={data?.temperature_history} simulated={simulated} unavailable={unavailable} />
       <section className="panel logs-panel"><div className="panel-header"><h2><Terminal size={18} /> Printer event log</h2><span className="tag">LATEST 100</span></div>
-        <div className="event-list">{data?.events?.length ? data.events.map(event => <div className="event" key={event.id}>
+        <div className="event-list" ref={eventList}>{data?.events?.length ? data.events.map(event => <div className="event" key={event.id}>
           <span>{date(event.timestamp)}</span><p>{event.message}{event.simulated ? ' (demo)' : ''}</p>
         </div>) : <p className="muted">Waiting for printer events…</p>}</div>
         <p className="muted">Commands and observed printer state/target changes. Very brief external transitions between polls may not appear.</p>
@@ -130,15 +136,16 @@ export default function App() {
 
     <section className="panel incident-panel"><div className="panel-header"><h2><History size={18} /> Print issue history</h2>
       <button className="secondary-btn" onClick={refresh} disabled={busy}><RefreshCw size={15} /> Refresh</button></div>
-      <p className="muted">{data?.incident_stats?.total ?? 0} recorded issues. History is retained after resume or cancel.</p>
-      {data?.incidents?.length ? <div className="table-scroll"><table><thead><tr>
-        {['Time', 'Print', 'Issue', 'Progress', 'Pause request', 'Alert', 'Resolution'].map(title => <th key={title}>{title}</th>)}
-      </tr></thead><tbody>{data.incidents.map(incident => <tr key={incident.id}>
-        <td>{date(incident.timestamp)}</td><td>{incident.file_name || 'Unknown'}{incident.mode === 'simulation' ? ' (demo)' : ''}</td>
-        <td>{incident.failure_type}</td><td>{incident.print_progress == null ? '—' : `${incident.print_progress.toFixed(1)}%`}</td>
-        <td>{incident.pause_success ? 'Accepted' : 'Failed'}</td><td>{incident.notification_sent ? 'Sent' : 'Not sent'}</td>
-        <td>{incident.resolution?.replaceAll('_', ' ') || 'pending'}</td>
-      </tr>)}</tbody></table></div> : <p className="empty-state">No print issues recorded.</p>}
+      <p className="muted">Pause and cancel history · Full local date and time · Retained after resume or cancel.</p>
+      {data?.print_history?.length ? <div className="table-scroll"><table><thead><tr>
+        {['Date and time', 'File', 'Action', 'Reason', 'Details', 'Progress', 'Elapsed', 'Result'].map(title => <th key={title}>{title}</th>)}
+      </tr></thead><tbody>{data.print_history.map(entry => <tr key={entry.id}>
+        <td>{date(entry.timestamp)}</td><td>{entry.file_name || 'Unknown'}{entry.simulated ? ' (demo)' : ''}</td>
+        <td>{entry.action}</td><td>{entry.reason}</td><td>{entry.detail}</td>
+        <td>{entry.print_progress == null ? '—' : `${entry.print_progress.toFixed(1)}%`}</td>
+        <td>{duration(entry.print_time)}</td><td>{entry.outcome}</td>
+      </tr>)}</tbody></table></div> : <p className="empty-state">No pauses or cancellations recorded.</p>}
+
     </section>
     {review && <ReviewDialog key={review} action={review} file={selectedFile} busy={busy} error={error} onClose={() => setReview(null)}
       onConfirm={() => command(`/printer/${review}`, { confirmed: true, ...(review === 'start' ? { path: selectedFile } : {}) })} />}

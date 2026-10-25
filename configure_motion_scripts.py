@@ -20,10 +20,12 @@ def can_configure(status):
             status['state'].lower() in ('operational', 'offline', 'offline after error'))
 
 
-async def configure(apply=False):
+async def configure(apply=False, verified_um2_homing=False):
     if PRINTER_TYPE != 'octoprint':
         raise RuntimeError('Configure OctoPrint first')
     scripts = {name: (ROOT / 'pi-module' / 'gcode_scripts' / name).read_text() for name in NAMES}
+    if verified_um2_homing:
+        scripts['afterPrintCancelled'] = (ROOT / 'pi-module/gcode_scripts/ultimaker2plus/afterPrintCancelled').read_text()
     if not apply:
         print(json.dumps(scripts, indent=2))
         return
@@ -42,10 +44,13 @@ async def configure(apply=False):
     saved = (await printer._octo('GET', '/api/settings')).json()['scripts']['gcode']
     if any(saved.get(name, '').strip() != script.strip() for name, script in scripts.items()):
         raise RuntimeError(f'Verification failed; inspect settings. Original scripts: {backup}')
-    print(f'Installed and verified stationary scripts. Backup: {backup}')
+    print(f'Installed and verified scripts (UM2+ cancel homing: {verified_um2_homing}). Backup: {backup}')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
-    asyncio.run(configure(parser.parse_args().apply))
+    parser.add_argument('--verified-um2-homing', action='store_true',
+                        help='Use ONLY after physical verification of UM2+ bed/head homing and endstops')
+    args = parser.parse_args()
+    asyncio.run(configure(args.apply, args.verified_um2_homing))
