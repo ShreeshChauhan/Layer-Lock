@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from notification import send_discord_alert
 from printer import printer
 from risk_engine import risk_engine
+from camera_feed import router as camera_router
 from incident_db import (
     get_incidents,
     get_incident_stats,
@@ -25,6 +26,8 @@ app = FastAPI(
     version="0.6.0"
 )
 
+app.include_router(camera_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -32,7 +35,8 @@ app.add_middleware(
         "http://127.0.0.1:5173"
     ],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    expose_headers=["X-Frame-Received-At"]
 )
 
 risk_lock = asyncio.Lock()

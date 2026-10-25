@@ -36,7 +36,9 @@ import {
 import RecoveryPanel from "./RecoveryPanel";
 import "./App.css";
 
-const API = "http://127.0.0.1:8000";
+import { API } from "./api";
+import CameraFeed from "./CameraFeed";
+import RiskDial from "./RiskDial";
 
 export default function App() {
   const [mode, setMode] = useState("simulation");
@@ -65,7 +67,7 @@ export default function App() {
     message: "Waiting for first sensor reading"
   });
 
-  const [backendReady, setBackendReady] = useState(false);
+  const [, setBackendReady] = useState(false);
   const [autoFeed, setAutoFeed] = useState(false);
   const [failureTesting, setFailureTesting] = useState(false);
   const [failureType, setFailureType] = useState(null);
@@ -604,70 +606,24 @@ export default function App() {
   }
 
   function healthColor(status) {
-    if (status === "CONNECTED") return "#4be2a6";
-    if (status === "STALE") return "#f5a623";
-    return "#ff7068";
+    if (status === "CONNECTED") return "var(--ok)";
+    if (status === "STALE") return "var(--warning)";
+    return "var(--fault)";
   }
 
   return (
     <div className="dashboard">
-      <aside className="sidebar">
-        <div className="brand">
-          <Gauge size={28} />
-
-          <span>
-            PRINT
-            <span className="brand-accent">GUARDIAN</span>
-          </span>
-        </div>
-
-        <div className="nav-item active">
-          <Activity size={18} />
-          Overview
-        </div>
-
-        <div className="nav-item">
-          <Camera size={18} />
-          Camera Monitor
-        </div>
-
-        <div className="nav-item">
-          <Terminal size={18} />
-          Event Logs
-        </div>
-
-        <div className="sidebar-bottom">
-          <span className="online-dot" />
-          LOCAL MONITORING SYSTEM
-          <p>Prototype v0.7</p>
-        </div>
-      </aside>
-
       <main className="main">
         <header className="topbar">
           <div>
+            <div className="header-brand">
+              <img className="brand-logo" src="/brand/wolf-engine.svg" alt="LayerLock wolf engine emblem" />
+              <span>LAYER<span className="brand-accent">LOCK</span></span>
+            </div>
             <div className="eyebrow">
-              SYSTEM CONTROL CENTER
+              SBUHACKS STEEL &amp; STEAM / 3D PRINT MONITORING
             </div>
 
-            <h1>Printer Overview</h1>
-
-            <p>
-              Real-time monitoring and failure prevention
-            </p>
-
-            <p
-              style={{
-                color: backendReady ? "#4be2a6" : "#ff7068",
-                fontSize: "12px",
-                marginTop: "8px"
-              }}
-            >
-              ●{" "}
-              {backendReady
-                ? "Risk Engine Connected"
-                : "Risk Engine Disconnected"}
-            </p>
           </div>
 
           <button
@@ -685,7 +641,7 @@ export default function App() {
         )}
 
         <section
-          className="panel"
+          className="panel source-panel"
           style={{ marginBottom: "20px", padding: "20px" }}
         >
           <div className="panel-header">
@@ -699,7 +655,7 @@ export default function App() {
             </span>
           </div>
 
-          <p style={{ marginBottom: "14px", color: "#9aa7b3" }}>
+          <p style={{ marginBottom: "14px", color: "var(--muted)" }}>
             {isLive
               ? "Waiting for readings from connected components."
               : "Using simulated camera and filament readings."}
@@ -722,7 +678,7 @@ export default function App() {
                 isPaused
               }
               style={{
-                borderColor: !isLive ? "#4be2a6" : undefined
+                borderColor: !isLive ? "var(--ok)" : undefined
               }}
             >
               Simulation Mode
@@ -738,7 +694,7 @@ export default function App() {
                 isPaused
               }
               style={{
-                borderColor: isLive ? "#4be2a6" : undefined
+                borderColor: isLive ? "var(--ok)" : undefined
               }}
             >
               Live Mode
@@ -748,12 +704,12 @@ export default function App() {
 
         {isLive && (
           <section
-            className="panel"
+            className="panel health-panel"
             style={{
               padding: "20px",
               marginBottom: "20px",
               borderColor: sensorStale
-                ? "#f5a623"
+                ? "var(--warning)"
                 : undefined
             }}
           >
@@ -787,7 +743,7 @@ export default function App() {
               }}
             >
               <div>
-                <p style={{ color: "#9aa7b3", fontSize: "12px" }}>
+                <p style={{ color: "var(--muted)", fontSize: "12px" }}>
                   LAST READING
                 </p>
 
@@ -800,7 +756,7 @@ export default function App() {
               </div>
 
               <div>
-                <p style={{ color: "#9aa7b3", fontSize: "12px" }}>
+                <p style={{ color: "var(--muted)", fontSize: "12px" }}>
                   STALE THRESHOLD
                 </p>
 
@@ -810,7 +766,7 @@ export default function App() {
               </div>
 
               <div>
-                <p style={{ color: "#9aa7b3", fontSize: "12px" }}>
+                <p style={{ color: "var(--muted)", fontSize: "12px" }}>
                   MONITORING
                 </p>
 
@@ -833,7 +789,7 @@ export default function App() {
               <p
                 style={{
                   marginTop: "8px",
-                  color: "#f5a623",
+                  color: "var(--warning)",
                   fontSize: "13px"
                 }}
               >
@@ -864,7 +820,7 @@ export default function App() {
           <div className="panel stat">
             <div className="stat-label">
               <Printer size={18} />
-              PRINTER STATUS
+              MACHINE STATUS
             </div>
 
             <div className="stat-value">
@@ -878,11 +834,12 @@ export default function App() {
             </div>
           </div>
 
-          <div className="panel stat">
+          <div className={`panel stat risk-stat ${isWarning ? "risk-alert" : ""}`}>
             <div className="stat-label">
               <Gauge size={18} />
               FAILURE RISK
             </div>
+            <RiskDial value={risk} />
 
             <div
               className={`stat-value ${
@@ -923,7 +880,7 @@ export default function App() {
           <div className="panel stat">
             <div className="stat-label">
               <ShieldCheck size={18} />
-              MONITORING
+              MONITORING STATE
             </div>
 
             <div className="stat-value">
@@ -938,35 +895,12 @@ export default function App() {
 
         <section className="content-grid">
           <div className="panel camera-panel">
-            <div className="panel-header">
-              <h2>
-                <Camera size={18} />
-                Camera Feed
-              </h2>
-
-              <span className="tag">
-                {isLive ? "AWAITING CAMERA" : "MOCK FEED"}
-              </span>
-            </div>
-
-            <div className="camera-placeholder">
-              <Camera size={55} />
-
-              <h3>Camera Not Connected</h3>
-
-              <p>
-                {isLive
-                  ? "Awaiting teammate camera integration"
-                  : "Camera simulation active"}
-              </p>
-
-              <span>CAM-01</span>
-            </div>
+            <CameraFeed />
 
             <div className="camera-footer">
               <span>
                 <Radio size={15} />
-                Camera failure confidence
+                {isLive ? "Spaghetti confidence" : "Simulated detection confidence"}
               </span>
 
               <strong>
@@ -979,7 +913,7 @@ export default function App() {
             <div className="panel-header">
               <h2>
                 <Camera size={18} />
-                Failure Detection
+                Sensor Array
               </h2>
 
               <span className="tag">
@@ -989,7 +923,7 @@ export default function App() {
 
             <div className="sensor">
               <div className="sensor-top">
-                <span>Camera Failure Score</span>
+                <span>{isLive ? "Spaghetti confidence" : "Simulated detection confidence"}</span>
 
                 <strong>
                   {readings.cameraConfidence.toFixed(1)}%
@@ -1011,7 +945,7 @@ export default function App() {
               <strong>
                 {readings.filamentRunout
                   ? "RUNOUT"
-                  : "NORMAL"}
+                  : isLive ? "No runout reported" : "SIMULATED NORMAL"}
               </strong>
             </div>
           </div>
@@ -1030,7 +964,7 @@ export default function App() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={history}>
                   <CartesianGrid
-                    stroke="#26313b"
+                    stroke="var(--line)"
                     strokeDasharray="3 3"
                   />
 
@@ -1038,15 +972,15 @@ export default function App() {
 
                   <YAxis
                     domain={[0, 100]}
-                    stroke="#82909c"
+                    stroke="var(--muted)"
                   />
 
-                  <Tooltip />
+                  <Tooltip contentStyle={{ background: "var(--iron)", border: "1px solid var(--brass)", borderRadius: 0 }} />
 
                   <Line
                     type="monotone"
                     dataKey="risk"
-                    stroke="#f5a623"
+                    stroke="var(--brass)"
                     strokeWidth={3}
                     dot={false}
                     isAnimationActive={false}
@@ -1169,7 +1103,7 @@ export default function App() {
           <div className="panel-header">
             <h2>
               <History size={18} />
-              Failure History
+              Incident Log
             </h2>
 
             <button
@@ -1206,13 +1140,13 @@ export default function App() {
                 key={label}
                 style={{
                   padding: "16px",
-                  border: "1px solid #26313b",
-                  borderRadius: "10px"
+                  border: "1px solid var(--line)",
+                  borderRadius: "2px"
                 }}
               >
                 <p
                   style={{
-                    color: "#9aa7b3",
+                    color: "var(--muted)",
                     fontSize: "12px",
                     marginBottom: "8px"
                   }}
@@ -1223,7 +1157,7 @@ export default function App() {
                 <strong
                   style={{
                     fontSize: "24px",
-                    color: "#4be2a6"
+                    color: "var(--ok)"
                   }}
                 >
                   {value}
@@ -1237,7 +1171,7 @@ export default function App() {
               style={{
                 textAlign: "center",
                 padding: "30px",
-                color: "#9aa7b3"
+                color: "var(--muted)"
               }}
             >
               <History size={30} />
@@ -1275,8 +1209,8 @@ export default function App() {
                         key={heading}
                         style={{
                           padding: "12px",
-                          borderBottom: "1px solid #26313b",
-                          color: "#9aa7b3"
+                          borderBottom: "1px solid var(--line)",
+                          color: "var(--muted)"
                         }}
                       >
                         {heading}
@@ -1312,8 +1246,8 @@ export default function App() {
                         style={{
                           padding: "12px",
                           color: incident.pause_success
-                            ? "#4be2a6"
-                            : "#ff7068"
+                            ? "var(--ok)"
+                            : "var(--fault)"
                         }}
                       >
                         {incident.pause_success
@@ -1325,8 +1259,8 @@ export default function App() {
                         style={{
                           padding: "12px",
                           color: incident.notification_sent
-                            ? "#4be2a6"
-                            : "#ff7068"
+                            ? "var(--ok)"
+                            : "var(--fault)"
                         }}
                       >
                         {incident.notification_sent
