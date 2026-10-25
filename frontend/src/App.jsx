@@ -165,7 +165,6 @@ export default function App() {
       if (modeRef.current === "live") {
         const next = {
           cameraConfidence: data.camera_confidence,
-          filamentRunout: data.filament_runout,
           progress: latestReadings.current.progress
         };
 
@@ -379,7 +378,6 @@ export default function App() {
 
     const failureData = {
       cameraConfidence: 95,
-      filamentRunout: false,
       progress: latestReadings.current.progress
     };
 
@@ -402,48 +400,6 @@ export default function App() {
         await new Promise(resolve =>
           setTimeout(resolve, 1000)
         );
-      }
-
-      await refreshPrinter();
-    } finally {
-      failureTestingRef.current = false;
-      setFailureTesting(false);
-      setFailureType(null);
-    }
-  }
-
-  async function simulateFilamentRunout() {
-    if (
-      isLive ||
-      !armed ||
-      isPaused ||
-      failureTestingRef.current ||
-      resetting
-    ) {
-      return;
-    }
-
-    failureTestingRef.current = true;
-    setFailureTesting(true);
-    setFailureType("filament");
-    setAutoFeed(false);
-
-    const failureData = {
-      cameraConfidence: 10,
-      filamentRunout: true,
-      progress: latestReadings.current.progress
-    };
-
-    latestReadings.current = failureData;
-    setReadings(failureData);
-
-    addEvent("Filament runout simulation started");
-
-    try {
-      const result = await sendSensorData(failureData);
-
-      if (result?.paused) {
-        addEvent("Filament runout detected");
       }
 
       await refreshPrinter();
@@ -658,7 +614,7 @@ export default function App() {
           <p style={{ marginBottom: "14px", color: "var(--muted)" }}>
             {isLive
               ? "Waiting for readings from connected components."
-              : "Using simulated camera and filament readings."}
+              : "Using simulated camera readings."}
           </p>
 
           <div
@@ -913,7 +869,7 @@ export default function App() {
             <div className="panel-header">
               <h2>
                 <Camera size={18} />
-                Sensor Array
+                Camera Detection
               </h2>
 
               <span className="tag">
@@ -939,15 +895,6 @@ export default function App() {
               </div>
             </div>
 
-            <div className="filament-row">
-              <span>Filament Sensor</span>
-
-              <strong>
-                {readings.filamentRunout
-                  ? "RUNOUT"
-                  : isLive ? "No runout reported" : "SIMULATED NORMAL"}
-              </strong>
-            </div>
           </div>
 
           <div className="panel chart-panel">
@@ -1044,21 +991,7 @@ export default function App() {
                 : "Simulate Camera Failure"}
             </button>
 
-            <button
-              className="secondary-btn"
-              onClick={simulateFilamentRunout}
-              disabled={
-                isLive ||
-                !armed ||
-                failureTesting ||
-                resetting ||
-                isPaused
-              }
-            >
-              {failureTesting && failureType === "filament"
-                ? "Testing Filament..."
-                : "Simulate Filament Runout"}
-            </button>
+
 
             <button
               className="secondary-btn"
