@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <title>LayerLock wolf engine emblem</title>
+  <path fill="#181b19" stroke="#ba955b" stroke-width="2" d="M12 3h56l9 9v56l-9 9H12l-9-9V12z"/>
+  <g fill="none" stroke="#ba955b" stroke-width="3" stroke-linejoin="miter">
+    <path d="M24 42V18l12 10h8l12-10v24L40 52z"/>
+    <path d="m28 35 8 3m16-3-8 3M35 43h10l-5 5z"/>
+    <path d="M22 48h8m20 0h8M23 53h34l7 13H16zM29 58l-3 8m14-10v10m11-8 3 8"/>
+  </g>
+  <path fill="#ba955b" d="M32 9h16v5H32zM35 14h10v10H35z"/>
+  <g fill="#ba955b"><circle cx="11" cy="11" r="2"/><circle cx="69" cy="11" r="2"/><circle cx="11" cy="69" r="2"/><circle cx="69" cy="69" r="2"/></g>
+</svg>

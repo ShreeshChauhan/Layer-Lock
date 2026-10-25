@@ -9,7 +9,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 
-const API = "http://127.0.0.1:8000";
+import { API } from "./api";
 
 const recoveryInstructions = {
   "Filament Runout": [
@@ -106,7 +106,7 @@ export default function RecoveryPanel({
   if (!paused) {
     return (
       <section
-        className="panel"
+        className="panel recovery-idle"
         style={{
           padding: "22px",
           marginBottom: "20px"
@@ -121,12 +121,12 @@ export default function RecoveryPanel({
         >
           <ShieldCheck
             size={25}
-            color="#4be2a6"
+            color="var(--ok)"
           />
 
           <div>
             <h2>Printer Recovery</h2>
-            <p style={{ color: "#9aa7b3" }}>
+            <p style={{ color: "var(--muted)" }}>
               No active printer pause requiring recovery.
             </p>
           </div>
@@ -166,11 +166,11 @@ export default function RecoveryPanel({
 
   return (
     <section
-      className="panel"
+      className="panel recovery-alert"
       style={{
         padding: "24px",
         marginBottom: "20px",
-        border: "1px solid #e99b44"
+        border: "1px solid var(--copper)"
       }}
     >
       <div
@@ -183,15 +183,15 @@ export default function RecoveryPanel({
       >
         <AlertTriangle
           size={28}
-          color="#f5a623"
+          color="var(--warning)"
         />
 
         <div>
-          <h2 style={{ color: "#f5a623" }}>
+          <h2 style={{ color: "var(--warning)" }}>
             Printer Paused — Action Required
           </h2>
 
-          <p style={{ color: "#9aa7b3" }}>
+          <p style={{ color: "var(--muted)" }}>
             Review the incident before restarting
             the simulated printer.
           </p>
@@ -208,7 +208,7 @@ export default function RecoveryPanel({
         }}
       >
         <div>
-          <p style={{ color: "#9aa7b3" }}>
+          <p style={{ color: "var(--muted)" }}>
             FAILURE TYPE
           </p>
 
@@ -216,7 +216,7 @@ export default function RecoveryPanel({
         </div>
 
         <div>
-          <p style={{ color: "#9aa7b3" }}>
+          <p style={{ color: "var(--muted)" }}>
             RISK SCORE
           </p>
 
@@ -228,7 +228,7 @@ export default function RecoveryPanel({
         </div>
 
         <div>
-          <p style={{ color: "#9aa7b3" }}>
+          <p style={{ color: "var(--muted)" }}>
             PRINTER MODE
           </p>
 
@@ -238,11 +238,11 @@ export default function RecoveryPanel({
         </div>
 
         <div>
-          <p style={{ color: "#9aa7b3" }}>
+          <p style={{ color: "var(--muted)" }}>
             PAUSE STATUS
           </p>
 
-          <strong style={{ color: "#f5a623" }}>
+          <strong style={{ color: "var(--warning)" }}>
             PAUSED
           </strong>
         </div>
@@ -252,7 +252,7 @@ export default function RecoveryPanel({
         <div
           style={{
             marginBottom: "18px",
-            color: "#9aa7b3",
+            color: "var(--muted)",
             fontSize: "13px"
           }}
         >
@@ -270,7 +270,7 @@ export default function RecoveryPanel({
       )}
 
       {loading && (
-        <p style={{ color: "#9aa7b3" }}>
+        <p style={{ color: "var(--muted)" }}>
           Checking recent incident history...
         </p>
       )}
@@ -283,7 +283,7 @@ export default function RecoveryPanel({
         style={{
           paddingLeft: "22px",
           lineHeight: "2",
-          color: "#d8e0e6",
+          color: "var(--text)",
           marginBottom: "20px"
         }}
       >
@@ -297,7 +297,7 @@ export default function RecoveryPanel({
           padding: "16px",
           background: "rgba(245, 166, 35, 0.08)",
           border: "1px solid rgba(245, 166, 35, 0.25)",
-          borderRadius: "10px",
+          borderRadius: "2px",
           marginBottom: "18px"
         }}
       >
@@ -310,7 +310,7 @@ export default function RecoveryPanel({
         >
           <ShieldAlert
             size={20}
-            color="#f5a623"
+            color="var(--warning)"
           />
 
           <p style={{ fontSize: "13px" }}>
@@ -359,7 +359,7 @@ export default function RecoveryPanel({
           </button>
         </>
       ) : (
-        <p style={{ color: "#f5a623" }}>
+        <p style={{ color: "var(--warning)" }}>
           Automatic recovery is unavailable for
           real printer mode.
         </p>
@@ -369,7 +369,7 @@ export default function RecoveryPanel({
         <p
           style={{
             marginTop: "12px",
-            color: "#ff7068"
+            color: "var(--fault)"
           }}
         >
           {error}
