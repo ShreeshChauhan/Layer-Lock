@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CirclePower, Gauge, History, Printer, RefreshCw, Terminal } from 'lucide-react';
+import { Activity, CirclePower, Gauge, History, Plug, Printer, RefreshCw, Terminal } from 'lucide-react';
 import CameraFeed from './CameraFeed';
 import PrinterControls from './PrinterControls';
 import RecoveryPanel from './RecoveryPanel';
@@ -56,6 +56,7 @@ export default function App() {
   const live = data?.mode === 'live';
   const freshSensor = sensor?.health?.status === 'CONNECTED';
   const validTelemetry = printer && !unavailable;
+  const machineState = connectionError || data?.printer_error ? 'Unavailable' : printer?.state || 'Loading';
   const progress = validTelemetry ? printer.progress : null;
   const eventList = useRef(null);
   const latestEvent = data?.events?.[0]?.id;
@@ -103,8 +104,12 @@ export default function App() {
       unavailable={unavailable} busy={busy} onReview={openReview} />
     <section className="stats-grid">
       <article className="panel stat"><div className="stat-label"><Printer /> MACHINE STATUS</div>
-        <div className={`stat-value ${stateClass(validTelemetry ? printer.state : 'Unavailable')}`}>{validTelemetry ? printer.state : data ? 'Unavailable' : 'Connecting'}</div>
-        <div className="stat-footer">{validTelemetry ? printer.file || 'No file selected' : 'Waiting for printer telemetry'}</div></article>
+        <div className={`stat-value ${stateClass(machineState)}`}>{machineState}</div>
+        <div className="stat-footer">{validTelemetry ? printer.file || 'No file selected' : 'Printer connection required'}</div>
+        <button className="secondary-btn machine-connect" disabled={busy || Boolean(connectionError || data?.printer_error) || !printer?.can_connect}
+          onClick={() => command('/printer/connect')}><Plug size={15} />
+          {printer?.connected ? 'Connected' : printer?.can_connect ? 'Connect printer' : 'Waiting for connection'}</button>
+      </article>
       <article className="panel stat"><div className="stat-label"><Activity /> PRINT PROGRESS</div>
         <div className="stat-value">{progress == null ? '—' : `${progress.toFixed(1)}%`}</div>
         <div className="progress-track"><div style={{ width: `${Math.max(0, Math.min(100, progress || 0))}%` }} /></div>

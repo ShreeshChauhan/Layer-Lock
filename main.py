@@ -365,6 +365,11 @@ async def start_print(data: StartPrint):
     return await run_command('start', data.path)
 
 
+@app.post('/printer/connect')
+async def connect_printer():
+    return await run_command('connect')
+
+
 @app.post('/printer/resume')
 async def resume_print(data: ReviewPrint):
     if not data.confirmed:

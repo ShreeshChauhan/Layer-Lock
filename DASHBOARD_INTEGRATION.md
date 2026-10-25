@@ -62,6 +62,13 @@ one upstream stream; camera resolution, Wi-Fi and viewer count affect performanc
 
 ## Dashboard behavior
 
+- Machine Status includes Connect printer for an offline OctoPrint printer. It
+  uses OctoPrint's existing port/baudrate preferences (or auto-detection), records
+  the command in the event log, and waits for telemetry to confirm connection.
+  The backend rejects reconnects while connected or already connecting. The API
+  key requires OctoPrint's CONNECTION permission. File removal uses an unfilled
+  red trash icon beside each file.
+
 - Printer state, filename, completion, elapsed time, and remaining-time estimate come
   from OctoPrint `/api/job`. Missing estimates display as unavailable, never zero.
 - Tool0 and bed actual/target readings come from `/api/printer`. Disconnected printers

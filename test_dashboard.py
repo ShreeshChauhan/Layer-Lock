@@ -35,6 +35,15 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(len(first['temperature_history']), 1)
         self.assertEqual(first['events'], second['events'])
 
+    def test_connect_endpoint_records_request_and_acceptance(self):
+        with patch.object(main.printer, 'connect', new_callable=AsyncMock,
+                          return_value={'success': True, 'message': 'Connect command accepted', 'simulated': True}) as connect:
+            response = self.client.post('/printer/connect')
+        self.assertEqual(response.status_code, 200)
+        connect.assert_awaited_once()
+        events = self.client.get('/dashboard').json()['events']
+        self.assertTrue(any(event['message'] == 'Connect command accepted' for event in events))
+
     def test_delete_requires_idle_and_existing_file_without_confirmation(self):
         path = '/printer/files?path=mock_part.gcode'
         self.assertEqual(self.client.delete(path).status_code, 409)

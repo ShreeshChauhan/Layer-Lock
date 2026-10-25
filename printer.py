@@ -78,7 +78,7 @@ class Printer:
         sampled_at = datetime.now(timezone.utc).isoformat()
         if self.simulated:
             return {
-                'connected': True, 'operational': True,
+                'connected': True, 'operational': True, 'can_connect': False,
                 'state': 'Operational' if self.mock_idle else 'Paused' if self.mock_paused else 'Printing',
                 'printing': not self.mock_idle and not self.mock_paused,
                 'paused': self.mock_paused, 'progress': None if self.mock_idle else 42.5,
@@ -99,6 +99,7 @@ class Printer:
             }
             return {
                 'connected': bool(detail) and not bool(flags.get('closedOrError')),
+                'can_connect': not detail and (job.get('state') or '').lower() in ('offline', 'offline after error', 'closed', 'error'),
                 'operational': bool(flags.get('operational')) and not bool(flags.get('error')),
                 'state': job.get('state') or detail.get('state', {}).get('text') or 'Unknown',
                 'printing': bool(flags.get('printing')), 'paused': bool(flags.get('paused')),
@@ -123,6 +124,20 @@ class Printer:
                     for name, key in (('tool0', 'extruder'), ('bed', 'heater_bed'))},
                 'simulated': False, 'sampled_at': sampled_at}
         raise ValueError('Unsupported printer type')
+
+    async def connect(self):
+        if self.simulated:
+            raise CommandBlocked('The demo printer is already connected')
+        if PRINTER_TYPE != 'octoprint':
+            raise CommandBlocked('Connection control currently requires OctoPrint')
+        connection = (await self._octo('GET', '/api/connection')).json()
+        state = connection['current']['state'].lower()
+        # OctoPrint's connect command reconnects an already connected printer.
+        # Only issue it from a known disconnected state, never during a job.
+        if state not in ('offline', 'offline after error', 'closed', 'error'):
+            raise CommandBlocked('Printer is already connected or a connection is in progress')
+        await self._octo('POST', '/api/connection', json={'command': 'connect'})
+        return self._accepted('Connect')
 
     async def list_files(self):
         if self.simulated:

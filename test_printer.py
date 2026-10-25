@@ -14,6 +14,7 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
         self.actual = 205
         self.target = 210
         self.disconnected = False
+        self.connection_state = 'Offline after error'
         self.fail_commands = False
         self.uploads = []
         self.deletes = []
@@ -54,6 +55,8 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
             return httpx.Response(200, json={'state': self.state,
                 'job': {'file': {'name': 'cube.gcode'}},
                 'progress': {'completion': 37.2, 'printTime': 300, 'printTimeLeft': 900}})
+        if request.url.path == '/api/connection':
+            return httpx.Response(200, json={'current': {'state': self.connection_state}})
         if request.url.path == '/api/printer':
             if self.disconnected:
                 return httpx.Response(409)
@@ -73,6 +76,22 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status['print_time'], 300)
         self.assertEqual(status['print_time_left'], 900)
         self.assertEqual(status['temperatures']['bed'], {'actual': 58.3, 'target': 60})
+
+    async def test_connect_uses_octoprint_preferences_and_does_not_reconnect_active_printer(self):
+        await self.printer.connect()
+        self.assertEqual(self.commands, [('/api/connection', {'command': 'connect'})])
+        for state in ('Operational', 'Printing', 'Paused', 'Connecting', 'Detecting serial connection'):
+            self.connection_state = state
+            with self.assertRaises(adapter.CommandBlocked):
+                await self.printer.connect()
+        self.assertEqual(len(self.commands), 1)
+
+    async def test_offline_telemetry_enables_connect(self):
+        self.disconnected = True
+        self.state = 'Offline after error'
+        self.assertTrue((await self.printer.get_status())['can_connect'])
+        self.state = 'Detecting serial connection'
+        self.assertFalse((await self.printer.get_status())['can_connect'])
 
     async def test_delete_is_idle_only_and_propagates_rejection(self):
         with self.assertRaises(adapter.CommandBlocked):
