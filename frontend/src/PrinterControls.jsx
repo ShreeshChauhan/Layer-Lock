@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FileCode, Pause, Play, Printer, RefreshCw, Upload, X, Trash2 } from 'lucide-react';
+import { Check, FileCode, Home, Pause, Play, Printer, RefreshCw, Upload, X, Trash2 } from 'lucide-react';
 import { request } from './useDashboard';
 import { stateClass } from './printerState';
 
@@ -22,6 +22,7 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
   const selected = files.find(file => file.path === selectedFile);
   const paused = Boolean(printer?.paused);
   const active = Boolean(printer?.printing || paused);
+  const canHome = !busy && !unavailable && !active && printer?.operational && printer?.state?.toLowerCase() === 'operational';
   const selectionLocked = busy || deleting || unavailable || active || printer?.state?.toLowerCase() !== 'operational';
   const maySelect = useRef(false);
   useEffect(() => { maySelect.current = !selectionLocked; }, [selectionLocked]);
@@ -101,6 +102,14 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
         {paused ? <Play size={15} /> : <Pause size={15} />}{paused ? 'Resume' : 'Pause'}</button>
       <button className="danger-btn" disabled={busy || unavailable || !active} onClick={() => onReview('cancel')}><X size={15} /> Cancel</button>
     </div>
+    <div className="controls homing-controls" aria-label="Printer homing controls">
+      <button type="button" className="secondary-btn" disabled={!canHome} onClick={() => onCommand('/printer/home/bed')}>
+        <Home size={15} /> Home bed</button>
+      <button type="button" className="secondary-btn" disabled={!canHome} onClick={() => onCommand('/printer/home/head')}>
+        <Home size={15} /> Home head</button>
+    </div>
+    <p className="muted homing-note">Idle printer only. Clear the bed and home the bed before the head.
+      Homing relies on working endstops; do not use while the reported grinding or homing fault persists.</p>
     <div className="files-heading"><h2><FileCode size={17} /> Uploaded files <span className="file-count">{files.length}</span></h2>
       <button type="button" className="secondary-btn" aria-label="Refresh uploaded files" disabled={loading || uploading}
         onClick={refreshFiles}><RefreshCw size={15} /></button></div>

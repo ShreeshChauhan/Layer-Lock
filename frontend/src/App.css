@@ -207,5 +207,7 @@ th { color: var(--muted); }
 .remove-file { flex-shrink: 0; padding: 9px; align-self: stretch; height: auto; color: #e78c7e; background: transparent; border-color: transparent; box-shadow: none; }
 .remove-file:hover:not(:disabled), .remove-file:focus-visible { color: #ffb2a4; background: transparent; border-color: #a66559; }
 .machine-connect { margin-top: 12px; }
+.homing-controls { margin-top: 16px; }
+.homing-note { font-size: 11px; line-height: 1.6; }
 .delete-review { padding: 12px; border: 1px solid #87564b; margin: 10px 0; overflow-wrap: anywhere; }
 .delete-review button { margin: 4px; }

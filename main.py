@@ -370,6 +370,16 @@ async def connect_printer():
     return await run_command('connect')
 
 
+@app.post('/printer/home/head')
+async def home_head():
+    return await run_command('home_head')
+
+
+@app.post('/printer/home/bed')
+async def home_bed():
+    return await run_command('home_bed')
+
+
 @app.post('/printer/resume')
 async def resume_print(data: ReviewPrint):
     if not data.confirmed:

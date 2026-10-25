@@ -142,6 +142,24 @@ class Printer:
         await self._octo('POST', '/api/connection', json={'command': 'connect'})
         return self._accepted('Connect')
 
+    async def _home(self, target):
+        status = await self.get_status()
+        if (not status['connected'] or not status['operational'] or
+                status['printing'] or status['paused'] or status['state'].lower() != 'operational'):
+            raise CommandBlocked('Homing requires an idle, connected printer; finish or cancel the print first')
+        if not self.simulated:
+            if PRINTER_TYPE != 'octoprint':
+                raise CommandBlocked('Homing controls currently require OctoPrint')
+            axes = {'head': ['x', 'y'], 'bed': ['z']}[target]
+            await self._octo('POST', '/api/printer/printhead', json={'command': 'home', 'axes': axes})
+        return self._accepted(f'{target.title()} homing')
+
+    async def home_head(self):
+        return await self._home('head')
+
+    async def home_bed(self):
+        return await self._home('bed')
+
     async def list_files(self):
         if self.simulated:
             return [dict(file) for file in self.mock_files.values()]

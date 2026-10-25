@@ -62,6 +62,15 @@ one upstream stream; camera resolution, Wi-Fi and viewer count affect performanc
 
 ## Dashboard behavior
 
+- Printer Controls includes Home bed (Z) and Home head (X/Y). These send
+  OctoPrint's home command, using firmware endstops rather than guessed coordinates.
+  Both the UI and backend require a connected, operational, idle printer and reject
+  homing while printing or paused. This preserves saved pause/resume coordinates.
+  Clear the bed and home the bed before traversing the head. The reported homing
+  fault must be repaired before these physical movements are used. Accepted requests
+  are recorded in the event log; acceptance is not confirmation that homing finished.
+  These controls have been tested with mocked HTTP only; no physical homing was run.
+
 - Machine Status includes Connect printer for an offline OctoPrint printer. It
   uses OctoPrint's existing port/baudrate preferences (or auto-detection), records
   the command in the event log, and waits for telemetry to confirm connection.

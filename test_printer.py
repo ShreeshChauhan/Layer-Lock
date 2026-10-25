@@ -81,6 +81,32 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status['print_time_left'], 900)
         self.assertEqual(status['temperatures']['bed'], {'actual': 58.3, 'target': 60})
 
+    async def test_homing_uses_only_requested_axes(self):
+        self.state = 'Operational'
+        await self.printer.home_bed()
+        await self.printer.home_head()
+        self.assertEqual(self.commands, [
+            ('/api/printer/printhead', {'command': 'home', 'axes': ['z']}),
+            ('/api/printer/printhead', {'command': 'home', 'axes': ['x', 'y']})])
+
+    async def test_homing_blocks_active_jobs_and_disconnection(self):
+        for state in ('Printing', 'Paused', 'Pausing', 'Cancelling', 'Starting', 'Error'):
+            self.state = state
+            for command in (self.printer.home_head, self.printer.home_bed):
+                with self.assertRaises(adapter.CommandBlocked):
+                    await command()
+        self.state = 'Operational'
+        self.disconnected = True
+        with self.assertRaises(adapter.CommandBlocked):
+            await self.printer.home_bed()
+        self.assertEqual(self.commands, [])
+
+    async def test_rejected_homing_does_not_report_success(self):
+        self.state = 'Operational'
+        self.fail_commands = True
+        with self.assertRaises(httpx.HTTPStatusError):
+            await self.printer.home_head()
+
     async def test_connect_uses_octoprint_preferences_and_does_not_reconnect_active_printer(self):
         await self.printer.connect()
         self.assertEqual(self.commands, [('/api/connection', {'command': 'connect'})])

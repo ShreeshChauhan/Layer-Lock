@@ -44,6 +44,16 @@ class DashboardTests(unittest.TestCase):
         events = self.client.get('/dashboard').json()['events']
         self.assertTrue(any(event['message'] == 'Connect command accepted' for event in events))
 
+    def test_homing_routes_require_idle_and_log_accepted_commands(self):
+        for target in ('head', 'bed'):
+            self.assertEqual(self.client.post(f'/printer/home/{target}').status_code, 409)
+        main.printer.mock_idle = True
+        for target in ('head', 'bed'):
+            self.assertEqual(self.client.post(f'/printer/home/{target}').status_code, 200)
+        events = self.client.get('/dashboard').json()['events']
+        self.assertTrue(any('Head homing command accepted' == event['message'] for event in events))
+        self.assertTrue(any('Bed homing command accepted' == event['message'] for event in events))
+
     def test_delete_requires_idle_and_existing_file_without_confirmation(self):
         path = '/printer/files?path=mock_part.gcode'
         self.assertEqual(self.client.delete(path).status_code, 409)
