@@ -18,7 +18,7 @@ export async function request(path, options = {}) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || (response.status >= 500
-      ? 'The app backend is unavailable. Check that it is running (start-dev.ps1).'
+      ? 'The app backend is unavailable. Restart npm run dev in frontend, or run .\\start-dev.ps1. This page reconnects automatically.'
       : `Request failed (${response.status})`));
   }
   return response.json();

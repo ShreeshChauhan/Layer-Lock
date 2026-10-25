@@ -42,9 +42,12 @@ npm.cmd run dev -- --host 127.0.0.1 --port 5173
 ```
 
 After dependencies are installed, run `.\start-dev.ps1` from the repository root
-to start both services together. Ctrl+C stops the backend launched by that script.
-Do not run it alongside another backend on port 8000. Backend logs are written to
-`backend.log` and `backend-error.log`.
+or `npm run dev` in `frontend` to start both services together. Vite checks API health
+before opening the dashboard, starts the backend when absent, and reuses an existing
+healthy Layer-Lock backend. Ctrl+C stops only the backend this launcher started,
+including its vision worker. Startup failures appear in the terminal; backend logs
+are appended to `backend.log` and `backend-error.log`. Keep the terminal open while
+using the app. After a backend restart, check vision and arm automatic pauses again.
 
 Development requests use Vite's `/api` proxy to port 8000, including file uploads
 and camera snapshots. This also works if Vite chooses another port. A deployed
