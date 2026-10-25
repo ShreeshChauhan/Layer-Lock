@@ -1,7 +1,6 @@
 
 export const initialReadings = {
   cameraConfidence: 12,
-  filamentRunout: false,
   progress: 42.5
 };
 
@@ -25,8 +24,6 @@ export function generateMockReadings(previous) {
 }
 
 export function calculateRisk(readings) {
-  if (readings.filamentRunout) return 100;
-
   return Math.round(
     Math.max(0, Math.min(100, readings.cameraConfidence))
   );
@@ -34,7 +31,6 @@ export function calculateRisk(readings) {
 
 export function toBackendPayload(readings) {
   return {
-    camera_confidence: readings.cameraConfidence,
-    filament_runout: readings.filamentRunout
+    camera_confidence: readings.cameraConfidence
   };
 }
