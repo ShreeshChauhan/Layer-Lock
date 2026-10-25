@@ -15,6 +15,8 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
         self.target = 210
         self.disconnected = False
         self.connection_state = 'Offline after error'
+        self.active_path = 'parts/cube.gcode'
+        self.active_origin = 'local'
         self.fail_commands = False
         self.uploads = []
         self.deletes = []
@@ -53,7 +55,7 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
             return httpx.Response(409 if self.fail_commands else 204)
         if request.url.path == '/api/job':
             return httpx.Response(200, json={'state': self.state,
-                'job': {'file': {'name': 'cube.gcode'}},
+                'job': {'file': {'name': 'cube.gcode', 'path': self.active_path, 'origin': self.active_origin}},
                 'progress': {'completion': 37.2, 'printTime': 300, 'printTimeLeft': 900}})
         if request.url.path == '/api/connection':
             return httpx.Response(200, json={'current': {'state': self.connection_state}})
@@ -66,7 +68,9 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
                                 'bed': {'actual': 58.3, 'target': 60}, 'history': []}})
         if request.url.path == '/api/files/local':
             return httpx.Response(200, json={'files': [{'type': 'folder', 'children': [
-                {'type': 'machinecode', 'name': 'cube.gcode', 'path': 'parts/cube.gcode'}]}]})
+                {'type': 'machinecode', 'name': 'cube.gcode', 'path': 'parts/cube.gcode'},
+                {'type': 'machinecode', 'name': 'other.gcode', 'path': 'parts/other.gcode'},
+                {'type': 'machinecode', 'name': 'cube.gcode', 'path': 'copies/cube.gcode'}]}]})
         raise AssertionError(f'Unexpected HTTP: {request.url}')
 
     async def test_real_progress_time_and_temperatures(self):
@@ -93,7 +97,7 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
         self.state = 'Detecting serial connection'
         self.assertFalse((await self.printer.get_status())['can_connect'])
 
-    async def test_delete_is_idle_only_and_propagates_rejection(self):
+    async def test_delete_protects_active_file_and_propagates_rejection(self):
         with self.assertRaises(adapter.CommandBlocked):
             await self.printer.delete_file('parts/cube.gcode')
         self.assertEqual(self.deletes, [])
@@ -105,6 +109,25 @@ class OctoPrintTests(unittest.IsolatedAsyncioTestCase):
         self.fail_commands = True
         with self.assertRaises(httpx.HTTPStatusError):
             await self.printer.delete_file('parts/cube.gcode')
+
+    async def test_delete_other_files_during_printing_or_pause_uses_full_path(self):
+        for state in ('Printing', 'Paused'):
+            self.state = state
+            await self.printer.delete_file('parts/other.gcode')
+            await self.printer.delete_file('copies/cube.gcode')
+            with self.assertRaises(adapter.CommandBlocked):
+                await self.printer.delete_file('parts/cube.gcode')
+        self.assertEqual(len(self.deletes), 4)
+
+    async def test_delete_falls_back_to_filename_and_blocks_disconnected(self):
+        self.active_path = None
+        with self.assertRaises(adapter.CommandBlocked):
+            await self.printer.delete_file('copies/cube.gcode')
+        await self.printer.delete_file('parts/other.gcode')
+        self.disconnected = True
+        with self.assertRaises(adapter.CommandBlocked):
+            await self.printer.delete_file('parts/other.gcode')
+        self.assertEqual(self.deletes, ['/api/files/local/parts/other.gcode'])
 
     async def test_disconnected_is_not_connected(self):
         self.disconnected = True

@@ -186,10 +186,10 @@ th { color: var(--muted); }
 .upload-btn { border-color: var(--brass); }
 .file-search { width: 100%; background: var(--coal); color: var(--text); padding: 10px 12px; border: 1px solid var(--line); font: inherit; margin-bottom: 10px; border-radius: 2px; }
 .uploaded-files { max-height: 200px; min-height: 85px; overflow-y: auto; scrollbar-color: #6b6047 #171b16; }
-.file-row { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 15px; background: #171c17; color: var(--text); border: 1px solid transparent; border-bottom-color: var(--line); text-align: left; padding: 12px; }
-.file-row.selected { background: #2b3024; border-color: var(--brass); }
+.file-row { display: flex; align-items: center; width: 100%; gap: 12px; background: transparent; color: var(--text); border: 0; text-align: left; padding: 12px; }
+.file-entry.selected { background: #2b3024; border-color: var(--brass); }
 .file-row svg { color: var(--brass); flex-shrink: 0; }
-.file-info { display: grid; gap: 7px; min-width: 0; }
+.file-info { display: grid; gap: 7px; min-width: 0; flex: 1; }
 .file-info strong { font-weight: 500; overflow-wrap: anywhere; }
 .file-info > span { color: var(--muted); font-size: 11px; }
 .file-error { color: var(--fault); font-size: 12px; line-height: 1.5; }
@@ -202,7 +202,7 @@ th { color: var(--muted); }
 .state-danger { color: #d98274 !important; }
 .state-ready { color: #a9bd8a !important; }
 .state-neutral { color: #aaa79a !important; }
-.file-entry { display: flex; gap: 8px; align-items: stretch; }
+.file-entry { display: flex; gap: 0; align-items: stretch; background: #171c17; border: 1px solid transparent; border-bottom-color: var(--line); }
 .file-entry .file-row { flex: 1; min-width: 0; }
 .remove-file { flex-shrink: 0; padding: 9px; align-self: stretch; height: auto; color: #e78c7e; background: transparent; border-color: transparent; box-shadow: none; }
 .remove-file:hover:not(:disabled), .remove-file:focus-visible { color: #ffb2a4; background: transparent; border-color: #a66559; }

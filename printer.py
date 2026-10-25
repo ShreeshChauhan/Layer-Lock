@@ -84,6 +84,7 @@ class Printer:
                 'paused': self.mock_paused, 'progress': None if self.mock_idle else 42.5,
                 'print_time': None if self.mock_idle else 1200,
                 'print_time_left': None if self.mock_idle else 1624, 'file': self.mock_file,
+                'file_path': self.mock_file, 'file_origin': 'local',
                 'temperatures': {'tool0': {'actual': 209.5, 'target': 210}, 'bed': {'actual': 59.8, 'target': 60}},
                 'simulated': True, 'sampled_at': sampled_at,
             }
@@ -106,6 +107,8 @@ class Printer:
                 'progress': number(progress.get('completion')), 'print_time': number(progress.get('printTime')),
                 'print_time_left': number(progress.get('printTimeLeft')),
                 'file': ((job.get('job') or {}).get('file') or {}).get('name'),
+                'file_path': ((job.get('job') or {}).get('file') or {}).get('path'),
+                'file_origin': ((job.get('job') or {}).get('file') or {}).get('origin'),
                 'temperatures': temperatures, 'simulated': False, 'sampled_at': sampled_at,
             }
         if PRINTER_TYPE == 'moonraker':
@@ -193,8 +196,17 @@ class Printer:
     async def delete_file(self, path):
         # OctoPrint also enforces its own busy-file guard against external races.
         status = await self.get_status()
-        if status['state'].lower() != 'operational' or not status['operational']:
-            raise CommandBlocked('Files can only be removed while the printer is idle')
+        state = status['state'].lower()
+        if not status['connected'] or state not in ('operational', 'printing', 'paused', 'pausing', 'resuming', 'starting', 'finishing', 'cancelling'):
+            raise CommandBlocked('Cannot verify which file is in use; restore printer telemetry first')
+        if status['printing'] or status['paused'] or state != 'operational':
+            active_path = status.get('file_path')
+            active_name = status.get('file')
+            if not active_path and not active_name:
+                raise CommandBlocked('Cannot identify the active print; refresh printer telemetry')
+            if status.get('file_origin') != 'sdcard' and (
+                    path == active_path if active_path else Path(path).name == active_name):
+                raise CommandBlocked('Cannot remove the file used by the current print')
         if path not in {entry['path'] for entry in await self.list_files()}:
             raise CommandBlocked('File no longer exists; refresh the file list')
         if self.simulated:

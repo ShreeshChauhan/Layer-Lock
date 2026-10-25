@@ -22,6 +22,14 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
   const selected = files.find(file => file.path === selectedFile);
   const paused = Boolean(printer?.paused);
   const active = Boolean(printer?.printing || paused);
+  const selectionLocked = busy || deleting || unavailable || active || printer?.state?.toLowerCase() !== 'operational';
+  const maySelect = useRef(false);
+  useEffect(() => { maySelect.current = !selectionLocked; }, [selectionLocked]);
+  function fileInUse(file) {
+    if ((!active && printer?.state?.toLowerCase() === 'operational') || printer?.file_origin === 'sdcard') return false;
+    if (printer?.file_path) return file.path === printer.file_path;
+    return !printer?.file || file.name === printer.file || file.path.split('/').pop() === printer.file;
+  }
   const canPrint = !unavailable && !busy && !uploading && Boolean(selected) && printer?.state?.toLowerCase() === 'operational';
 
   useEffect(() => {
@@ -57,7 +65,7 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
         method: 'POST', body: file, timeoutMs: 150000,
       });
       setFiles(previous => [...previous.filter(item => item.path !== result.file.path), result.file]);
-      onSelect(result.file.path);
+      if (maySelect.current) onSelect(result.file.path);
       setSearch('');
       setMessage(`Uploaded ${result.file.path}.`);
     } catch (err) { setError(err.message); }
@@ -108,13 +116,15 @@ export default function PrinterControls({ printer, unavailable, busy, selectedFi
       value={search} onChange={event => setSearch(event.target.value)} />
     <div className="uploaded-files" aria-label="Uploaded G-code files" aria-busy={loading}>
       {loading ? <p className="muted">Loading uploaded files…</p> : visibleFiles.length ? visibleFiles.map(file =>
-        <div className="file-entry" key={file.path}><button type="button" className={`file-row ${selectedFile === file.path ? 'selected' : ''}`}
-          aria-pressed={selectedFile === file.path} disabled={busy || deleting} onClick={() => onSelect(file.path)}>
+        <div className={`file-entry ${selectedFile === file.path ? 'selected' : ''}`} key={file.path}><button type="button" className="file-row"
+          aria-pressed={selectedFile === file.path} disabled={selectionLocked} onClick={() => onSelect(file.path)}>
+          <FileCode size={18} />
           <span className="file-info"><strong>{file.path}</strong><span>{sizeLabel(file.size)}
             {file.date > 0 ? ` · ${new Date(file.date * 1000).toLocaleDateString()}` : ''}</span></span>
-          {selectedFile === file.path ? <Check size={18} aria-label="Selected" /> : <FileCode size={18} />}
+          {selectedFile === file.path && <Check size={18} aria-label="Selected" />}
         </button><button className="danger-btn remove-file" aria-label={`Remove ${file.path}`}
-          disabled={busy || deleting || uploading || unavailable || printer?.state?.toLowerCase() !== 'operational'}
+          disabled={busy || deleting || uploading || unavailable || fileInUse(file)}
+          title={fileInUse(file) ? 'The current print file cannot be removed' : `Remove ${file.path}`}
           onClick={() => deleteFile(file.path)}><Trash2 size={17} /></button></div>) : <p className="muted">{search ? 'No matching files.' : 'No uploaded files. Upload G-code to get started.'}</p>}
     </div>
     <p className="muted files-note">Files are saved on OctoPrint. Selecting or uploading a file does not start a print.</p>

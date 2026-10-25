@@ -92,7 +92,9 @@ one upstream stream; camera resolution, Wi-Fi and viewer count affect performanc
   Uploads have their own timeout and do not hold the printer-control lock, so pause
   and cancel remain available during an upload. The web interface does not slice STLs.
 - Start and resume have a review dialog. Cancel and file removal act immediately.
-  Trash buttons match file-row height; deletion remains limited to an idle printer. Resume requires an actually paused
+  Trash buttons sit inside the file row. During a print, selection is locked and
+  other files can be removed; the current print file is protected by full path.
+  Resume requires an actually paused
   operational printer and a tool0 target above zero with actual nozzle temperature
   at least `RESUME_MIN_TEMP_C` (default 180 C), matching the Pi library's guard.
 - Cancel uses OctoPrint's job-cancel command. Pause/park/resume/cancel motion and
@@ -199,6 +201,9 @@ References:
 
 ## Dashboard refinements and action history
 
+The progress card emphasizes time remaining, omitting zero hours (for example,
+`27m`). Completion percentage sits beside elapsed time below the progress bar.
+File icons sit on the left of each row, with red trash icons inside the right edge.
 Progress, elapsed time and remaining-time estimate share one card. The event log
 has one internal scrollbar; a new event returns it to the newest entry at the top.
 SQLite `print_actions` records manual pause/cancel requests with file, UTC timestamp,

@@ -54,6 +54,15 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(self.client.delete(path + '&confirmed=true').status_code, 409)
         self.assertTrue(any('File removed' in event['message'] for event in self.client.get('/dashboard').json()['events']))
 
+    def test_delete_other_file_during_print_preserves_current_job(self):
+        result = self.client.post('/printer/files/upload?filename=other.gcode', content=b'G28\n')
+        path = result.json()['file']['path']
+        self.assertEqual(self.client.delete('/printer/files', params={'path': path}).status_code, 200)
+        self.assertEqual(self.client.delete('/printer/files', params={'path': 'mock_part.gcode'}).status_code, 409)
+        status = self.client.get('/printer/status').json()
+        self.assertTrue(status['printing'])
+        self.assertEqual(status['file_path'], 'mock_part.gcode')
+
     def test_manual_pause_and_cancel_record_file_time_and_reason(self):
         self.assertEqual(self.client.post('/printer/pause').status_code, 200)
         self.assertEqual(self.client.post('/printer/cancel').status_code, 200)
