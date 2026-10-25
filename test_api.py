@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 import main
 import incident_db
+from vision_service import VisionService
 from printer import printer
 from risk_engine import risk_engine
 
@@ -41,6 +42,8 @@ class TestPrintGuardianAPI(unittest.TestCase):
             "mock"
         )
         self.printer_type_patch.start()
+        self.vision_patch = patch.object(main, 'vision_service', VisionService())
+        self.vision_patch.start()
 
         # Reset all shared backend state.
         main.mode = "simulation"
@@ -59,6 +62,7 @@ class TestPrintGuardianAPI(unittest.TestCase):
 
     def tearDown(self):
         self.client.close()
+        self.vision_patch.stop()
         self.discord_patch.stop()
         self.printer_type_patch.stop()
         self.db_patch.stop()

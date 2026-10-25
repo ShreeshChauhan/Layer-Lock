@@ -291,6 +291,22 @@ Reference: https://docs.octoprint.org/en/main/features/gcode_scripts.html
 
 ## Where to see and test detections
 
+The Monitoring connection panel includes **Enable vision / Disable vision** in
+live mode. Enable starts the existing inference publisher as a backend-owned,
+headless process using this environment, `SNAPSHOT_URL`, and `VISION_BACKEND_URL`
+(default `http://127.0.0.1:8000`). Its output goes to ignored `vision.log`. Model
+loading initially shows Starting; Running requires a fresh live reading. Missing
+dependencies/weights and unexpected process exits appear as Unavailable.
+
+Enable does not arm automatic pause monitoring. Disable stops the managed process,
+disarms monitoring, clears the current reading timestamp, and rejects incoming live
+readings. The camera stream continues independently. Backend shutdown stops its
+managed vision child, and repeated enable calls do not spawn duplicate workers.
+If a publisher already runs externally, the toggle enables/disables acceptance of
+its readings; stopping that external process must be done on its own host.
+One-time dependency/model installation is still required for a fresh checkout;
+the button never installs software or downloads a model automatically.
+
 Fresh readings appear in Failure Signal and the confidence below Live View. A
 sustained high-confidence failure while armed and printing produces a Print issue
 detected banner with resume/cancel controls, a Printer event log message, and an
@@ -299,7 +315,7 @@ boxes; inference and publication run separately. Unavailable/WAITING indicates n
 fresh publisher results, not a healthy-print assessment.
 
 For real camera recognition, install/download the vision components once, then
-run the publisher from the repository root:
+use Enable vision in the dashboard. Alternatively run the external publisher:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r vision/requirements.txt

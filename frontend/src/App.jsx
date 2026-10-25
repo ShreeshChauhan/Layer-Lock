@@ -55,6 +55,7 @@ export default function App() {
   const printer = data?.printer;
   const risk = data?.risk;
   const sensor = data?.sensor;
+  const vision = data?.vision;
   const unavailable = Boolean(connectionError || data?.printer_error || !printer?.connected);
   const simulated = printer?.simulated === true;
   const live = data?.mode === 'live';
@@ -86,7 +87,7 @@ export default function App() {
         <span>LAYER<span className="brand-accent">LOCK</span></span></div>
       <div className="eyebrow">3D PRINT MONITORING / {simulated ? 'MOCK PRINTER' : 'CONNECTED PRINTER'}</div>
     </div><button className={`arm-button ${risk?.armed ? 'armed' : ''}`}
-      disabled={busy || !data || Boolean(connectionError) || (!risk?.armed && (unavailable || risk?.paused || (live && !freshSensor)))}
+      disabled={busy || !data || Boolean(connectionError) || (!risk?.armed && (unavailable || risk?.paused || (live && (!freshSensor || !vision?.enabled))))}
       onClick={() => command(`/risk/${risk?.armed ? 'disarm' : 'arm'}`)}>
       <CirclePower size={17} />{risk?.armed ? 'Monitoring armed' : 'Arm monitoring'}</button></header>
 
@@ -96,6 +97,13 @@ export default function App() {
         <p className="muted">{simulated ? 'Demo printer telemetry. Configure OctoPrint on the backend for real readings.' : 'Printer telemetry and actions are provided by OctoPrint.'}</p>
         <p>Vision: <strong>{live ? sensor?.health?.status || 'WAITING' : 'SIMULATION SOURCE'}</strong>
           {sensor?.health?.age_seconds != null && ` · last reading ${sensor.health.age_seconds.toFixed(1)}s ago`}</p>
+        {live && <div className="vision-control">
+          <button type="button" className="secondary-btn" disabled={busy || !data || Boolean(connectionError)}
+            onClick={() => command(`/vision/${vision?.enabled ? 'disable' : 'enable'}`)}>
+            <CirclePower size={15} />{vision?.enabled ? 'Disable vision' : 'Enable vision'}</button>
+          <span className="tag">{vision?.state || 'WAITING'}</span>
+          <p className="muted" role="status">{vision?.message || 'Waiting for vision status.'}</p>
+        </div>}
         <p className="muted">{risk?.armed ? 'Detected issues automatically pause the print and create an incident.' : 'Arm monitoring to enable automatic failure pauses.'}</p>
       </div>
       {simulated && <div className="controls"><button className="secondary-btn" disabled={busy || !live || risk?.paused}

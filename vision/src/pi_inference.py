@@ -56,7 +56,7 @@ def monitor(detect_failure, *, snapshot_url, backend_url, interval=3,
                     publish_result(result, backend_url, timeout=timeout)
                 except urllib.error.HTTPError as error:
                     if error.code == 409:
-                        print('Backend rejected reading (409): select live mode manually in the dashboard. '
+                        print('Backend rejected reading (409): select live mode and enable vision in the dashboard. '
                               'No mode change or arming was requested.', file=sys.stderr)
                     else:
                         print(f'Backend rejected reading: HTTP {error.code}', file=sys.stderr)

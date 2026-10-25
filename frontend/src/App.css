@@ -209,5 +209,7 @@ th { color: var(--muted); }
 .machine-connect { margin-top: 12px; }
 .homing-controls { margin-top: 16px; }
 .homing-note { font-size: 11px; line-height: 1.6; }
+.vision-control { margin: 12px 0; }
+.vision-control .tag { margin-left: 10px; }
 .delete-review { padding: 12px; border: 1px solid #87564b; margin: 10px 0; overflow-wrap: anywhere; }
 .delete-review button { margin: 4px; }

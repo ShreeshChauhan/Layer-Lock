@@ -13,12 +13,13 @@ try {
     if ($apiProcess.HasExited) {
         throw 'Backend failed to start. Check backend-error.log; stop any existing backend on port 8000 before using this launcher.'
     }
-    Write-Host 'Backend started. Live View loads automatically; the vision publisher is only needed for failure detection.'
+    Write-Host 'Backend started. Live View loads automatically; use Enable vision in the dashboard to start failure detection.'
     Set-Location (Join-Path $projectRoot 'frontend')
     & npm.cmd run dev
 } finally {
     if ($apiProcess -and -not $apiProcess.HasExited) {
-        Stop-Process -Id $apiProcess.Id -ErrorAction SilentlyContinue
+        # Stop this launcher's API and its owned inference child process together.
+        & taskkill.exe /PID $apiProcess.Id /T /F 2>$null | Out-Null
     }
     Pop-Location
 }

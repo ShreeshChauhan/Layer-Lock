@@ -44,6 +44,34 @@ class DashboardTests(unittest.TestCase):
         events = self.client.get('/dashboard').json()['events']
         self.assertTrue(any(event['message'] == 'Connect command accepted' for event in events))
 
+    def test_vision_toggle_never_arms_and_disabled_readings_are_rejected(self):
+        self.client.post('/mode/live')
+        with patch.object(main.vision_service, 'enable', new_callable=AsyncMock) as enable:
+            self.assertEqual(self.client.post('/vision/enable').status_code, 200)
+            enable.assert_awaited_once()
+        self.assertFalse(self.client.get('/risk/status').json()['armed'])
+        self.assertEqual(self.client.post('/live/update', json={'camera_confidence': 0}).status_code, 200)
+        self.assertEqual(self.client.post('/risk/arm').status_code, 200)
+        self.assertEqual(self.client.post('/vision/disable').status_code, 200)
+        self.assertFalse(self.client.get('/risk/status').json()['armed'])
+        self.assertEqual(self.client.post('/live/update', json={'camera_confidence': 99}).status_code, 409)
+        self.assertIsNone(self.client.get('/dashboard').json()['sensor']['updated_at'])
+
+    def test_vision_missing_dependencies_reports_failure_without_spawning(self):
+        self.client.post('/mode/live')
+        with patch.object(main.vision_service, 'prerequisites', return_value='Model weights are missing'), \
+                patch('vision_service.asyncio.create_subprocess_exec') as spawn:
+            result = self.client.post('/vision/enable')
+            self.assertEqual(result.status_code, 503)
+            self.assertIn('Model weights', result.json()['detail'])
+            spawn.assert_not_called()
+
+    def test_known_detector_exit_blocks_arming_despite_recent_reading(self):
+        self.client.post('/mode/live')
+        self.client.post('/live/update', json={'camera_confidence': 0})
+        main.vision_service.error = 'Vision exited'
+        self.assertEqual(self.client.post('/risk/arm').status_code, 409)
+
     def test_homing_routes_require_idle_and_log_accepted_commands(self):
         for target in ('head', 'bed'):
             self.assertEqual(self.client.post(f'/printer/home/{target}').status_code, 409)

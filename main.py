@@ -16,6 +16,7 @@ from printer import printer, CommandBlocked, validate_upload_name
 from telemetry import PrinterMonitor
 from risk_engine import risk_engine
 from camera_feed import router as camera_router
+from vision_service import vision_service
 from incident_db import (
     get_incidents, get_print_history, save_print_action,
     get_incident_stats,
@@ -47,6 +48,7 @@ async def lifespan(app):
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        await vision_service.disable()
         await printer.close()
 
 
@@ -257,6 +259,7 @@ async def dashboard():
         'printer': current, 'printer_error': monitor.error,
         'temperature_history': list(monitor.history), 'mode': mode,
         'sensor': {**latest_sensor, 'health': sensor_health()},
+        'vision': vision_service.status(latest_sensor),
         'risk': risk_engine.status(), 'events': get_events(),
         'incidents': get_incidents(100), 'incident_stats': get_incident_stats(),
         'print_history': get_print_history(),
@@ -270,6 +273,42 @@ async def printer_files():
         return {'files': await printer.list_files()}
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
         raise HTTPException(503, 'Unable to list printer files') from error
+
+
+vision_lock = asyncio.Lock()
+
+
+@app.post('/vision/enable')
+async def enable_vision():
+    async with vision_lock:
+        if mode != 'live':
+            raise HTTPException(409, 'Select live vision source before enabling the detector')
+        external = vision_service.status(latest_sensor)['enabled']
+        try:
+            await vision_service.enable(external_fresh=external)
+        except (ValueError, OSError) as error:
+            raise HTTPException(503, str(error)) from error
+        monitor.event('Vision detection enabled; automatic pause monitoring must be armed separately')
+        return vision_service.status(latest_sensor)
+
+
+@app.post('/vision/disable')
+async def disable_vision():
+    global latest_sensor
+    async with vision_lock:
+        async with risk_lock:
+            current = vision_service.status(latest_sensor)
+            if current['enabled'] and not current['managed']:
+                vision_service.external = True
+            vision_service.disabled_by_user = True
+            risk_engine.disarm()
+            latest_sensor = {**latest_sensor, 'updated_at': None}
+            monitor.event('Vision detection disabled; automatic pause monitoring disarmed')
+        try:
+            await vision_service.disable()
+        except (OSError, asyncio.TimeoutError) as error:
+            raise HTTPException(503, 'Vision results disabled, but the process could not be stopped; check vision.log') from error
+        return vision_service.status(latest_sensor)
 
 
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
@@ -340,7 +379,7 @@ async def run_command(action, path=None):
                     resolve_incident(incident['id'], f'{action}_requested')
             elif action == 'start':
                 risk_engine.recover()
-                if mode == 'live' and sensor_health()['status'] == 'CONNECTED':
+                if mode == 'live' and sensor_health()['status'] == 'CONNECTED' and vision_service.status(latest_sensor)['enabled']:
                     risk_engine.arm()
             elif action == 'pause':
                 risk_engine.confirm_pause()
@@ -409,7 +448,7 @@ async def arm_monitoring():
         if mode == "live":
             health = sensor_health()
 
-            if health["status"] != "CONNECTED":
+            if health["status"] != "CONNECTED" or not vision_service.status(latest_sensor)['enabled']:
                 raise HTTPException(
                     status_code=409,
                     detail=(
@@ -433,6 +472,8 @@ async def process_sensor_update(data: SensorData, source: str):
     async with risk_lock:
         if source != mode:
             raise HTTPException(409, f"Cannot submit {source} readings in {mode} mode")
+        if source == 'live' and vision_service.disabled_by_user:
+            raise HTTPException(409, 'Vision detection is disabled in the dashboard')
         if source == 'simulation' and not printer.simulated:
             raise HTTPException(409, 'Simulated readings cannot control a real printer')
         if source == 'live' and sensor_health()['status'] != 'CONNECTED':
