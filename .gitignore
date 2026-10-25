@@ -1,4 +1,3 @@
-
 # Python
 .venv/
 __pycache__/
@@ -20,6 +19,15 @@ print_guardian.db
 *.db-wal
 *.db-shm
 
+# Vision weights, footage and generated output
+vision/models/
+vision/datasets/videos/
+vision/results/
+
 # Logs and temporary files
 *.log
 .DS_Store
+vision/**/*.log
+vision/**/*.tmp
+vision/**/*.part
+vision/**/*.ytdl
